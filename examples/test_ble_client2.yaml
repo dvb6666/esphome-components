@@ -1,0 +1,94 @@
+substitutions:
+  device_name: "test_ble_client2"
+  device_mac1: "01:23:45:67:89:AB"
+  device_mac2: "11:22:33:44:55:66"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+esphome:
+  name: "${device_name}"
+
+logger:
+
+api:
+  encryption:
+    key: "N3JvEgQCWuAuUKrnG2oQd1Ntu3H2FOmLPAqTwA63bpk="
+
+ota:
+  password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+button:
+  - platform: restart
+    name: "${device_name} Restart"
+    entity_category: diagnostic
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+sensor:
+  - platform: template
+    id: battery_level
+    name: "${device_name} Battery Level"
+    device_class: battery
+    unit_of_measurement: '%'
+    state_class: measurement
+    accuracy_decimals: 0
+  - platform: template
+    id: tx_power
+    name: "${device_name} TX Power"
+    device_class: power_factor
+    unit_of_measurement: '%'
+    state_class: measurement
+    accuracy_decimals: 0
+  - platform: template
+    id: link_loss
+    name: "${device_name} Link Loss"
+    state_class: measurement
+    accuracy_decimals: 0
+  - platform: uptime
+    name: "${device_name} Uptime"
+
+external_components:
+  - source: github://myhomeiot/esphome-components
+  - source: github://dvb6666/esphome-components
+
+esp32_ble_tracker:
+myhomeiot_ble_host:
+myhomeiot_ble_client2:
+  - mac_address: ${device_mac1}
+    update_interval: 300sec
+    services:
+      - service_uuid: '180F'
+        characteristic_uuid: '2A19'
+      - service_uuid: '1804'
+        characteristic_uuid: '2A07'
+      - service_uuid: '1803'
+        characteristic_uuid: '2A06'
+    on_value:
+      then:
+        lambda: |-
+          ESP_LOGD("M1", "Received [%d] for service %d", x[0], service);
+          if (service==1) id(battery_level).publish_state(x[0]);
+          else if (service==2) id(tx_power).publish_state(x[0]);
+          else if (service==3) id(link_loss).publish_state(x[0]);
+  - mac_address: ${device_mac2}
+    update_interval: 300sec
+    services:
+      - service_uuid: '180F'
+        characteristic_uuid: '2A19'
+      - service_uuid: '1804'
+        characteristic_uuid: '2A07'
+      - service_uuid: '1803'
+        characteristic_uuid: '2A06'
+    on_value:
+      then:
+        lambda: |-
+          ESP_LOGD("M2", "Received [%d] for service %d", x[0], service);
