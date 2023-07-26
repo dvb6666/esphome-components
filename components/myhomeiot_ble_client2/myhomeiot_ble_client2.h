@@ -214,8 +214,11 @@ protected:
   void update() override { this->is_update_requested_ = true; }
 
   void report_results(uint8_t *data, uint16_t len) {
-    ESP_LOGV(TAG, "[%s] Reporting result for service (%s): %d", to_string(this->address_).c_str(),
-             this->services[this->processing_service]->service_uuid_.to_string().c_str(), data[0]);
+    uint32_t result = 0;
+    for (int i = 0; i < len && i < 4; i++)
+      result = (result << 8) + (uint32_t) data[i];
+    ESP_LOGD(TAG, "[%s] Reporting %d bytes result for service (%s): 0x%08X", to_string(this->address_).c_str(),
+             len, this->services[this->processing_service]->service_uuid_.to_string().c_str(), result);
     this->status_clear_warning();
     std::vector<uint8_t> value(data, data + len);
     this->callback_.call(value, processing_service + 1, *this);
