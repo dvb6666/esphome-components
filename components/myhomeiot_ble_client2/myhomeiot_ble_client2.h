@@ -122,12 +122,16 @@ public:
                                           : param->search_res.srvc_id.uuid.len == ESP_UUID_LEN_32
                                               ? esp32_ble_tracker::ESPBTUUID::from_uint32(param->search_res.srvc_id.uuid.uuid.uuid32)
                                               : esp32_ble_tracker::ESPBTUUID::from_raw(param->search_res.srvc_id.uuid.uuid.uuid128);
+      bool found = false;
       for (int i = 0; i < this->services.size(); i++)
         if (uuid == this->services[i]->service_uuid_) {
           ESP_LOGD(TAG, "[%s] SEARCH_RES_EVT service[%d] (%s) found", to_string(this->address_).c_str(), i + 1, uuid.to_string().c_str());
           this->services[i]->start_handle_ = param->search_res.start_handle;
           this->services[i]->end_handle_ = param->search_res.end_handle;
+          found = true;
         }
+      if (!found)
+        ESP_LOGV(TAG, "[%s] SEARCH_RES_EVT got unused service (%s)", to_string(this->address_).c_str(), uuid.to_string().c_str());
       break;
     }
     case ESP_GATTC_SEARCH_CMPL_EVT: {
@@ -135,18 +139,11 @@ public:
         break;
       ESP_LOGV(TAG, "[%s] SEARCH_CMPL_EVT", to_string(this->address_).c_str());
 
-      bool all_services_found = true;
-      for (int i = 0; all_services_found && i < this->services.size(); i++)
+      for (int i = 0; i < this->services.size(); i++)
         if (this->services[i]->start_handle_ == ESP_GATT_ILLEGAL_HANDLE) {
-          ESP_LOGE(TAG, "[%s] SEARCH_CMPL_EVT service[%d] (%s) not found", to_string(this->address_).c_str(), i + 1,
+          ESP_LOGW(TAG, "[%s] SEARCH_CMPL_EVT service[%d] (%s) not found", to_string(this->address_).c_str(), i + 1,
                    this->services[i]->service_uuid_.to_string().c_str());
-          all_services_found = false;
         }
-      if (!all_services_found) {
-        report_error();
-        break;
-      }
-
       process_next_service();
       break;
     }
@@ -161,8 +158,7 @@ public:
       }
 
       report_results(param->read.value, param->read.value_len);
-      if (!process_next_service())
-        this->state_ = MYHOMEIOT_ESTABLISHED;
+      process_next_service();
       break;
     }
     default:
@@ -223,7 +219,6 @@ protected:
     this->status_clear_warning();
     std::vector<uint8_t> value(data, data + len);
     this->callback_.call(value, processing_service + 1, *this);
-    this->is_update_requested_ = false;
   }
 
   void report_error(esp32_ble_tracker::ClientState state = MYHOMEIOT_ESTABLISHED) {
@@ -238,8 +233,17 @@ protected:
   }
 
   bool process_next_service() {
-    if (++processing_service >= this->services.size())
+    this->processing_service++;
+    while (this->processing_service < this->services.size() && this->services[this->processing_service]->start_handle_ == ESP_GATT_ILLEGAL_HANDLE)
+      this->processing_service++;
+
+    if (this->processing_service >= this->services.size()) {
+      this->status_clear_warning();
+      this->is_update_requested_ = false;
+      this->state_ = MYHOMEIOT_ESTABLISHED;
+      ESP_LOGV(TAG, "[%s] All services processed", to_string(this->address_).c_str());
       return false;
+    }
 
     int i = this->processing_service;
     uint16_t offset = 0;
