@@ -1,5 +1,5 @@
 substitutions:
-  device_name: "test_ble_client2"
+  device_name: "test-ble-client2"
   device_mac1: "01:23:45:67:89:AB"
   device_mac2: "11:22:33:44:55:66"
 
