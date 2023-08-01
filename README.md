@@ -17,7 +17,26 @@ external_components:
 You can take a look at samples of usage of those components in [examples](examples) folder.
 
 ## [BLE Client2](components/myhomeiot_ble_client2)
-Copy of [myhomeiot BLE Client](https://github.com/myhomeiot/esphome-components/tree/main) that allows to read set of characteristics from device at the **same** connection.
+Copy of [myhomeiot BLE Client](https://github.com/myhomeiot/esphome-components/tree/main) that allows:
+- To read set of characteristics from device at the **same** connection.
+- To write characteristics (when option `value` presents). Examples:
+```yaml
+      - service_uuid: '0000fff0-0000-1000-8000-00805f9b34fb'
+        characteristic_uuid: '0000fff1-0000-1000-8000-00805f9b34fb'
+        value: [0xFD, 0x37, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xCB]
+        
+      - service_uuid: '0000fff0-0000-1000-8000-00805f9b34fb'
+        characteristic_uuid: '0000fff1-0000-1000-8000-00805f9b34fb'
+        value: !lambda |-
+          return {0xFD, 0x37, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xCB};
+```
+- To subscribe for notifies (when option `notify` set to `true`). Example:
+```yaml
+      - service_uuid: '0000fff0-0000-1000-8000-00805f9b34fb'
+        characteristic_uuid: '0000fff4-0000-1000-8000-00805f9b34fb'
+        notify: true
+```
+
 Difference from build-in [ESPHome BLE Client](https://esphome.io/components/sensor/ble_client.html):
 - Always disconnects from device after reading characteristic, this will allow to save device battery. You can specify `update_interval`, defaults to 60min.
 - Uses lambda for parsing and extracting data into specific sensors make this component very flexible and useful for prototyping.

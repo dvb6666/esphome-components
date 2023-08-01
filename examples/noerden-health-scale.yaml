@@ -1,0 +1,98 @@
+substitutions:
+  device_name: "noerden-health-scale"
+  scales_mac: !secret scales_mac
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+esphome:
+  name: "${device_name}"
+
+logger:
+
+api:
+  reboot_timeout: 0s
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+external_components:
+  - source: github://myhomeiot/esphome-components
+  - source: github://dvb6666/esphome-components
+
+sensor:
+  - platform: template
+    id: battery_level
+    name: "${device_name} Battery Level"
+    device_class: battery
+    unit_of_measurement: '%'
+    state_class: measurement
+    accuracy_decimals: 0
+  - platform: template
+    id: scales_weight
+    name: "${device_name} My Weight"
+    device_class: "weight"
+    unit_of_measurement: 'kg'
+    state_class: measurement
+    accuracy_decimals: 1
+  - platform: template
+    id: scales_impedance
+    name: "${device_name} My Impedance"
+    state_class: measurement
+    accuracy_decimals: 0
+  - platform: uptime
+    name: "${device_name} Uptime"
+
+button:
+  - platform: restart
+    name: "${device_name} Restart"
+    entity_category: diagnostic
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+esp32_ble_tracker:
+myhomeiot_ble_host:
+myhomeiot_ble_client2:
+  - mac_address: ${scales_mac}
+    update_interval: 30sec
+    services:
+      - service_uuid: '1800'
+        characteristic_uuid: '2A00'
+      - service_uuid: '180F'
+        characteristic_uuid: '2A19'
+      - service_uuid: '0000fff0-0000-1000-8000-00805f9b34fb'
+        characteristic_uuid: '0000fff1-0000-1000-8000-00805f9b34fb'
+        value: [0xFD, 0x37, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xCB]
+      - service_uuid: '0000fff0-0000-1000-8000-00805f9b34fb'
+        characteristic_uuid: '0000fff4-0000-1000-8000-00805f9b34fb'
+        notify: true
+      - service_uuid: '0000fff0-0000-1000-8000-00805f9b34fb'
+        characteristic_uuid: '0000fff1-0000-1000-8000-00805f9b34fb'
+        value: !lambda |-
+            return {0xFD, 0x37, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xCB};
+    on_value:
+      then:
+        lambda: |-
+          if (service == 1) {
+            const char *name = "Health Scale";
+            bool equal = (strlen(name) == x.size());
+            for (int i = 0; equal && i < x.size(); i++)
+              if (name[i] != x[i]) equal = false;
+            if (!equal) {
+              ESP_LOGW("noerden", "That was not '%s' device! Stop processing services", name);
+              stop_processing = true;
+            }
+          }
+          else if (service == 2) {
+            id(battery_level).publish_state(x[0]);
+          }
+          else if (service == 4 && x.size() >= 10 && x[0] == 0xCF) {
+            id(scales_weight)->publish_state((float)(*(uint16_t*)&x[3]) / 100.0f);
+            id(scales_impedance)->publish_state((float)(*(uint32_t*)&x[5]));
+            stop_processing = true;
+          }
