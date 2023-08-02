@@ -36,6 +36,21 @@ Copy of [myhomeiot BLE Client](https://github.com/myhomeiot/esphome-components/t
         characteristic_uuid: '0000fff4-0000-1000-8000-00805f9b34fb'
         notify: true
 ```
+- To force update BLE-client processing with action `myhomeiot_ble_client2.force_update` or method `force_update()` from lambda. Example:
+```yaml
+button:
+  - platform: template
+    name: "Force Update"
+    on_press:
+      - myhomeiot_ble_client2.force_update:
+          id: my_ble_client
+      # - lambda: |-
+      #     id(my_ble_client).force_update();
+
+myhomeiot_ble_client2:
+  - mac_address: "01:23:45:67:89:AB"
+    id: my_ble_client
+```
 
 Difference from build-in [ESPHome BLE Client](https://esphome.io/components/sensor/ble_client.html):
 - Always disconnects from device after reading characteristic, this will allow to save device battery. You can specify `update_interval`, defaults to 60min.

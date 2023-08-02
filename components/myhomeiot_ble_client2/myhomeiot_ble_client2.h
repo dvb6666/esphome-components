@@ -422,6 +422,15 @@ public:
   }
 };
 
+template <typename... Ts> class MyHomeIOT_BLEClientForceUpdateAction : public Action<Ts...> {
+public:
+  MyHomeIOT_BLEClientForceUpdateAction(MyHomeIOT_BLEClient2 *ble_client) : ble_client_(ble_client) {}
+  void play(Ts... x) override { ble_client_->force_update(); }
+
+private:
+  MyHomeIOT_BLEClient2 *ble_client_;
+};
+
 } // namespace myhomeiot_ble_client2
 } // namespace esphome
 

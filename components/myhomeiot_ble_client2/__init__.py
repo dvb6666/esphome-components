@@ -36,6 +36,8 @@ MyHomeIOT_BLEClientValueTrigger = myhomeiot_ble_client2_ns.class_(
     "MyHomeIOT_BLEClientValueTrigger",
     automation.Trigger.template(cg.std_vector.template(cg.uint8), cg.int32),
 )
+# Actions
+MyHomeIOT_BLEClientForceUpdateAction = myhomeiot_ble_client2_ns.class_("MyHomeIOT_BLEClientForceUpdateAction", automation.Action)
 
 CONFIG_SCHEMA = (
     cv.Schema(
@@ -62,6 +64,12 @@ CONFIG_SCHEMA = (
     .extend(cv.polling_component_schema("60min"))
     .extend(myhomeiot_ble_host.BLE_CLIENT_SCHEMA)
 )
+FORCE_UPDATE_ACTION_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(CONF_ID): cv.use_id(MyHomeIOT_BLEClient2),
+    }
+)
+
 
 def versiontuple(v):
     return tuple(map(int, (v.split("."))))
@@ -108,3 +116,11 @@ async def to_code(config):
     for conf in config.get(CONF_ON_VALUE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(cg.std_vector.template(cg.uint8), "x"), (cg.int32, "service"), (BoolRef, "stop_processing"), (MyHomeIOT_BLEClient2ConstRef, "xthis")], conf)
+
+@automation.register_action(
+    "myhomeiot_ble_client2.force_update", MyHomeIOT_BLEClientForceUpdateAction, FORCE_UPDATE_ACTION_SCHEMA
+)
+async def ble_write_to_code(config, action_id, template_arg, args):
+    parent = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, parent)
+    return var
