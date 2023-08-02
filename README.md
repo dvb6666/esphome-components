@@ -19,7 +19,7 @@ You can take a look at samples of usage of those components in [examples](exampl
 ## [BLE Client2](components/myhomeiot_ble_client2)
 Copy of [myhomeiot BLE Client](https://github.com/myhomeiot/esphome-components/tree/main) that allows:
 - To read set of characteristics from device at the **same** connection.
-- To write characteristics (when option `value` presents). Examples:
+- To <a name="write"></a>write characteristics (when option `value` presents). Examples:
 ```yaml
       - service_uuid: '0000fff0-0000-1000-8000-00805f9b34fb'
         characteristic_uuid: '0000fff1-0000-1000-8000-00805f9b34fb'
@@ -30,13 +30,13 @@ Copy of [myhomeiot BLE Client](https://github.com/myhomeiot/esphome-components/t
         value: !lambda |-
           return {0xFD, 0x37, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xCB};
 ```
-- To subscribe for notifies (when option `notify` set to `true`). Example:
+- To <a name="notify"></a>subscribe for notifies (when option `notify` set to `true`). Example:
 ```yaml
       - service_uuid: '0000fff0-0000-1000-8000-00805f9b34fb'
         characteristic_uuid: '0000fff4-0000-1000-8000-00805f9b34fb'
         notify: true
 ```
-- To force update BLE-client with action `myhomeiot_ble_client2.force_update` or method `force_update()` from lambda. Example:
+- To <a name="update"></a>force update BLE-client with action `myhomeiot_ble_client2.force_update` or method `force_update()` from lambda. Example:
 ```yaml
 button:
   - platform: template
