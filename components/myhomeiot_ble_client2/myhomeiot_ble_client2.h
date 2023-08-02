@@ -83,6 +83,13 @@ public:
     this->callback_.add(std::move(callback));
   }
 
+  void force_update() {
+    if (this->state_ == MYHOMEIOT_IDLE) {
+      ESP_LOGD(TAG, "[%s] Force update requested", to_string(this->address_).c_str());
+      this->is_update_requested_ = true;
+    }
+  }
+
   bool parse_device(const esp32_ble_tracker::ESPBTDevice &device) override {
     if (!this->is_update_requested_ || this->state_ != MYHOMEIOT_IDLE || device.address_uint64() != this->address_ || services.empty())
       return false;
