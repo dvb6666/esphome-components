@@ -36,7 +36,7 @@ Copy of [myhomeiot BLE Client](https://github.com/myhomeiot/esphome-components/t
         characteristic_uuid: '0000fff4-0000-1000-8000-00805f9b34fb'
         notify: true
 ```
-- To force update BLE-client processing with action `myhomeiot_ble_client2.force_update` or method `force_update()` from lambda. Example:
+- To force update BLE-client with action `myhomeiot_ble_client2.force_update` or method `force_update()` from lambda. Example:
 ```yaml
 button:
   - platform: template
