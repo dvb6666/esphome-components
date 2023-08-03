@@ -1,0 +1,192 @@
+substitutions:
+  uuid_serv: "c44cb600-eac7-11e3-acb8-0002a5d5c51b"
+  uuid_char: "55482920-EACB-11E3-918A-0002A5D5C51B"
+  device_name1: "mclh09_001"
+  device_mac_1: !secret mclh09_001_mac
+
+esphome:
+  name: mclh-09-gateway
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+logger:
+api:
+  reboot_timeout: 0s
+ota:
+  password: !secret ota_password
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+external_components:
+  - source: github://myhomeiot/esphome-components
+  - source: github://dvb6666/esphome-components
+
+esp32_ble_tracker:
+myhomeiot_ble_host:
+myhomeiot_ble_client2:
+  - mac_address: ${device_mac_1}
+    id: ${device_name1}_ble_client
+    update_interval: 60s
+    services:
+      - service_uuid: '180F'
+        characteristic_uuid: '2A19'
+      - service_uuid: '${uuid_serv}'
+        characteristic_uuid: '${uuid_char}'
+      - service_uuid: '1802'
+        characteristic_uuid: '2A06'
+        value: !lambda |-
+          int index = (id(${device_name1}_alert_select).active_index()).value_or(0);
+          int prev_value = id(${device_name1}_alert_val);
+          if (index >= 3) {
+            if (index == 5 && prev_value == index) 
+              return {};
+            id(${device_name1}_alert_val) = index;
+            return { (uint8_t)(index == 5 ? 0x00 : index == 4 ? 0x01 : 0x02) };
+          }
+          else {
+            id(${device_name1}_alert_val) = 0;
+            if (index > 0) {
+              auto call = id(${device_name1}_alert_select).make_call();
+              call.set_index(0);
+              call.perform();
+              return { (uint8_t)(index == 2 ? 0x01 : 0x02) };
+            }
+            else if (prev_value == 5)
+              return { (uint8_t) 0x02 };
+            else
+              return {};
+          }
+
+    on_value:
+      then:
+        lambda: |-
+          if (service == 1) id(${device_name1}_batt).publish_state(x[0]);
+          else if (service == 2) {
+            id(${device_name1}_temp).publish_state((float)(*(uint16_t*)&x[0]));
+            id(${device_name1}_humi).publish_state((float)(*(uint16_t*)&x[2]));
+            id(${device_name1}_soil).publish_state((float)(*(uint16_t*)&x[4]));
+            id(${device_name1}_lumi).publish_state((float)(*(uint16_t*)&x[6]));
+            if (id(${device_name1}_raw_data).state) {
+              id(${device_name1}_raw1).publish_state((float)(*(uint16_t*)&x[0]));
+              id(${device_name1}_raw2).publish_state((float)(*(uint16_t*)&x[2]));
+              id(${device_name1}_raw3).publish_state((float)(*(uint16_t*)&x[4]));
+              id(${device_name1}_raw4).publish_state((float)(*(uint16_t*)&x[6]));
+            }
+          }
+
+button:
+  - platform: restart
+    name: "Restart"
+    entity_category: diagnostic
+
+globals:
+   - id: ${device_name1}_alert_val
+     type: int
+     restore_value: no
+     initial_value: '0'
+
+select:
+  - platform: template
+    id: ${device_name1}_alert_select
+    name: "${device_name1} alert select"
+    icon: "mdi:alarm-light"
+    options:
+     - "Off"
+     - "Green light (once)"
+     - "Red light (once)"
+     - "Green light (every update)"
+     - "Red light (every update)"
+     - "Green light (always)"
+    initial_option: "Off"
+    restore_value: true
+    optimistic: true
+    on_value:
+      - myhomeiot_ble_client2.force_update:
+          id: ${device_name1}_ble_client
+
+binary_sensor:
+  - platform: template
+    id: ${device_name1}_alert
+    name: "${device_name1} alert"
+    lambda: |-
+      return id(${device_name1}_alert_val) >= 3;
+
+switch:
+  - platform: template
+    id: ${device_name1}_raw_data
+    name: "${device_name1} raw data"
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: diagnostic
+
+sensor:
+  - platform: uptime
+    name: Uptime
+
+  - platform: template
+    id: ${device_name1}_batt
+    name: "${device_name1} batt"
+    device_class: battery
+    unit_of_measurement: '%'
+    state_class: measurement
+    accuracy_decimals: 0
+  - platform: template
+    id: ${device_name1}_temp
+    name: "${device_name1} temp"
+    device_class: temperature
+    unit_of_measurement: '°C'
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+    - lambda: !lambda |-
+        return x / 24.02482269503546;
+  - platform: template
+    id: ${device_name1}_lumi
+    name: "${device_name1} lumi"
+    device_class: "illuminance"
+    state_class: measurement
+    accuracy_decimals: 0
+  - platform: template
+    id: ${device_name1}_soil
+    name: "${device_name1} soil"
+    device_class: "humidity"
+    state_class: measurement
+    accuracy_decimals: 0
+  - platform: template
+    id: ${device_name1}_humi
+    name: "${device_name1} humi"
+    device_class: "humidity"
+    unit_of_measurement: '%'
+    state_class: measurement
+    accuracy_decimals: 0
+    filters:
+    - lambda: !lambda |-
+        return x / 13;
+
+  - platform: template
+    id: ${device_name1}_raw1
+    name: "${device_name1} raw1"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    state_class: measurement
+  - platform: template
+    id: ${device_name1}_raw2
+    name: "${device_name1} raw2"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    state_class: measurement
+  - platform: template
+    id: ${device_name1}_raw3
+    name: "${device_name1} raw3"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    state_class: measurement
+  - platform: template
+    id: ${device_name1}_raw4
+    name: "${device_name1} raw4"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    state_class: measurement

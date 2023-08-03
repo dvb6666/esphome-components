@@ -310,6 +310,7 @@ protected:
   }
 
   void vec2str(const std::vector<uint8_t> &value) {
+    strcpy(temp_str, "");
     for (int i = 0; i < value.size() && i < sizeof(temp_str) / 2; i++)
       snprintf(temp_str + 2 * i, sizeof(temp_str - 2 * i), "%02X", value[i]);
   }
@@ -381,9 +382,9 @@ protected:
 
           std::vector<uint8_t> value = services[i]->get_value();
           vec2str(value);
-          ESP_LOGD(TAG, "[%s] Sending %d bytes %sfor service[%d] (%s): [0x%s]", to_string(this->address_).c_str(), value.size(),
+          ESP_LOGD(TAG, "[%s] Sending %d bytes %sfor service[%d] (%s): [%s%s]", to_string(this->address_).c_str(), value.size(),
                    write_type == ESP_GATT_WRITE_TYPE_RSP ? "(with response) " : "", i + 1,
-                   this->services[i]->service_uuid_.to_string().c_str(), temp_str);
+                   this->services[i]->service_uuid_.to_string().c_str(), strlen(temp_str) > 0 ? "0x" : "", temp_str);
 
           auto status = esp_ble_gattc_write_char(ble_host_->gattc_if, this->conn_id_, this->services[i]->char_handle_, value.size(),
                                                  value.data(), write_type, ESP_GATT_AUTH_REQ_NONE);
