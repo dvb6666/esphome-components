@@ -8,6 +8,7 @@ from esphome.const import (
     CONF_SERVICES,
     CONF_SERVICE_UUID,
     CONF_TRIGGER_ID,
+    CONF_ON_CONNECT,
     CONF_ON_VALUE,
     CONF_VALUE,
 )
@@ -32,6 +33,10 @@ MyHomeIOT_BLEClientService = myhomeiot_ble_client2_ns.class_(
 BoolRef = cg.bool_.operator("ref")
 
 # Triggers
+MyHomeIOT_BLEClientConnectTrigger = myhomeiot_ble_client2_ns.class_(
+    "MyHomeIOT_BLEClientConnectTrigger",
+    automation.Trigger.template(cg.int32),
+)
 MyHomeIOT_BLEClientValueTrigger = myhomeiot_ble_client2_ns.class_(
     "MyHomeIOT_BLEClientValueTrigger",
     automation.Trigger.template(cg.std_vector.template(cg.uint8), cg.int32),
@@ -51,6 +56,11 @@ CONFIG_SCHEMA = (
                     cv.Required(CONF_CHARACTERISTIC_UUID): esp32_ble_tracker.bt_uuid,
                     cv.Optional(CONF_NOTIFY, default=False): cv.boolean,
                     cv.Optional(CONF_VALUE): cv.templatable(cv.ensure_list(cv.hex_uint8_t)),
+                }
+            ),
+            cv.Optional(CONF_ON_CONNECT): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(MyHomeIOT_BLEClientConnectTrigger),
                 }
             ),
             cv.Optional(CONF_ON_VALUE): automation.validate_automation(
@@ -113,6 +123,9 @@ async def to_code(config):
 
         cg.add(var.add_service(srv))
 
+    for conf in config.get(CONF_ON_CONNECT, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [(cg.int32, "rssi"), (MyHomeIOT_BLEClient2ConstRef, "xthis")], conf)
     for conf in config.get(CONF_ON_VALUE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(cg.std_vector.template(cg.uint8), "x"), (cg.int32, "service"), (BoolRef, "stop_processing"), (MyHomeIOT_BLEClient2ConstRef, "xthis")], conf)

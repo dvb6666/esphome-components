@@ -60,6 +60,10 @@ myhomeiot_ble_client2:
               return {};
           }
 
+    on_connect:
+      then:
+        lambda: |-
+          id(${device_name1}_rssi).publish_state(rssi);
     on_value:
       then:
         lambda: |-
@@ -165,6 +169,14 @@ sensor:
     filters:
     - lambda: !lambda |-
         return x / 13;
+  - platform: template
+    id: ${device_name1}_rssi
+    name: "${device_name1} rssi"
+    icon: "mdi:signal"
+    entity_category: diagnostic
+    unit_of_measurement: 'dBm'
+    state_class: measurement
+    accuracy_decimals: 0
 
   - platform: template
     id: ${device_name1}_raw1

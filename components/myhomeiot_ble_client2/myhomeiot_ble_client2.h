@@ -79,8 +79,12 @@ public:
       this->disconnect();
   }
 
+  void add_on_connect_callback(std::function<void(int, const MyHomeIOT_BLEClient2 &)> &&callback) {
+    this->connect_callback_.add(std::move(callback));
+  }
+
   void add_on_state_callback(std::function<void(std::vector<uint8_t>, int, bool &, const MyHomeIOT_BLEClient2 &)> &&callback) {
-    this->callback_.add(std::move(callback));
+    this->value_callback_.add(std::move(callback));
   }
 
   void force_update() {
@@ -94,9 +98,10 @@ public:
     if (!this->is_update_requested_ || this->state_ != MYHOMEIOT_IDLE || device.address_uint64() != this->address_ || services.empty())
       return false;
 
-    ESP_LOGD(TAG, "[%s] Found device", device.address_str().c_str());
+    ESP_LOGD(TAG, "[%s] Found device. RSSI: %d", device.address_str().c_str(), device.get_rssi());
     memcpy(this->remote_bda_, device.address(), sizeof(this->remote_bda_));
     this->state_ = MYHOMEIOT_DISCOVERED;
+    this->rssi_ = device.get_rssi();
     return true;
   }
 
@@ -120,6 +125,7 @@ public:
       }
       reset_client();
       this->state_ = MYHOMEIOT_CONNECTED;
+      this->connect_callback_.call(this->rssi_, *this);
       break;
     }
     case ESP_GATTC_CFG_MTU_EVT: {
@@ -254,10 +260,12 @@ protected:
     return std::string(buffer);
   }
 
-  CallbackManager<void(std::vector<uint8_t>, int, bool &, const MyHomeIOT_BLEClient2 &)> callback_{};
+  CallbackManager<void(int, const MyHomeIOT_BLEClient2 &)> connect_callback_{};
+  CallbackManager<void(std::vector<uint8_t>, int, bool &, const MyHomeIOT_BLEClient2 &)> value_callback_{};
   bool is_update_requested_;
   uint64_t address_;
   esp_bd_addr_t remote_bda_;
+  int rssi_ = 0;
   uint16_t conn_id_;
   int processing_service;
   std::vector<MyHomeIOT_BLEClientService *> services;
@@ -289,7 +297,7 @@ protected:
     ESP_LOGD(TAG, "[%s] Receiving %d bytes for %sservice[%d] (%s): [0x%s]", to_string(this->address_).c_str(), value.size(),
              this->services[service]->is_notify() ? "notify " : "", service + 1, this->services[service]->service_uuid_.to_string().c_str(),
              temp_str);
-    this->callback_.call(value, service + 1, this->stop_processing, *this);
+    this->value_callback_.call(value, service + 1, this->stop_processing, *this);
     if (this->stop_processing) {
       ESP_LOGD(TAG, "[%s] Stop processing after service[%d] (%s)", to_string(this->address_).c_str(), service + 1,
                this->services[service]->service_uuid_.to_string().c_str());
@@ -412,6 +420,13 @@ protected:
     }
 
     return true;
+  }
+};
+
+class MyHomeIOT_BLEClientConnectTrigger : public Trigger<int, const MyHomeIOT_BLEClient2 &> {
+public:
+  explicit MyHomeIOT_BLEClientConnectTrigger(MyHomeIOT_BLEClient2 *parent) {
+    parent->add_on_connect_callback([this](int rssi, const MyHomeIOT_BLEClient2 &xthis) { this->trigger(rssi, xthis); });
   }
 };
 
