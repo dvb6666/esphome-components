@@ -11,6 +11,7 @@ from esphome.const import (
     CONF_ON_CONNECT,
     CONF_ON_VALUE,
     CONF_VALUE,
+    CONF_DELAY,
 )
 
 CODEOWNERS = ["@dvb666"]
@@ -20,6 +21,7 @@ MULTI_CONF = True
 CONF_BLE_HOST = "ble_host"
 CONF_CHARACTERISTIC_UUID = "characteristic_uuid"
 CONF_NOTIFY = "notify"
+CONF_SKIP_EMPTY = "skip_empty"
 
 myhomeiot_ble_client2_ns = cg.esphome_ns.namespace("myhomeiot_ble_client2")
 MyHomeIOT_BLEClient2 = myhomeiot_ble_client2_ns.class_(
@@ -55,6 +57,8 @@ CONFIG_SCHEMA = (
                     cv.Required(CONF_SERVICE_UUID): esp32_ble_tracker.bt_uuid,
                     cv.Required(CONF_CHARACTERISTIC_UUID): esp32_ble_tracker.bt_uuid,
                     cv.Optional(CONF_NOTIFY, default=False): cv.boolean,
+                    cv.Optional(CONF_DELAY): cv.templatable(cv.positive_time_period_milliseconds),
+                    cv.Optional(CONF_SKIP_EMPTY, default=False): cv.boolean,
                     cv.Optional(CONF_VALUE): cv.templatable(cv.ensure_list(cv.hex_uint8_t)),
                 }
             ),
@@ -118,8 +122,17 @@ async def to_code(config):
           else:
             cg.add(srv.set_value_simple(value))
 
+        if value := service.get(CONF_DELAY):
+          if cg.is_template(value):
+            templ = await cg.templatable(value, [], cg.uint32)
+            cg.add(srv.set_delay_template(templ))
+          else:
+            cg.add(srv.set_delay_simple(value))
+
         if service[CONF_NOTIFY]:
           cg.add(srv.set_notify())
+        if service[CONF_SKIP_EMPTY]:
+          cg.add(srv.set_skip_empty())
 
         cg.add(var.add_service(srv))
 

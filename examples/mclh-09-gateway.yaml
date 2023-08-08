@@ -3,6 +3,8 @@ substitutions:
   uuid_char: "55482920-EACB-11E3-918A-0002A5D5C51B"
   device_name1: "mclh09_001"
   device_mac_1: !secret mclh09_001_mac
+  delay_green_red: "3000"
+  delay_red_green: "3000"
 
 esphome:
   name: mclh-09-gateway
@@ -37,14 +39,16 @@ myhomeiot_ble_client2:
         characteristic_uuid: '${uuid_char}'
       - service_uuid: '1802'
         characteristic_uuid: '2A06'
+        skip_empty: true
         value: !lambda |-
           int index = (id(${device_name1}_alert_select).active_index()).value_or(0);
           int prev_value = id(${device_name1}_alert_val);
-          if (index >= 3) {
-            if (index == 5 && prev_value == index) 
+          id(${device_name1}_alert2_val) = (index == 4 || index == 8 ? 0x01 : index == 3 || index == 7 ? 0x02 : 0);
+          if (index >= 5) {
+            if (index == 9 && prev_value == index)
               return {};
             id(${device_name1}_alert_val) = index;
-            return { (uint8_t)(index == 5 ? 0x00 : index == 4 ? 0x01 : 0x02) };
+            return { (uint8_t)(index == 9 ? 0x00 : index == 6 || index == 7 ? 0x01 : 0x02) };
           }
           else {
             id(${device_name1}_alert_val) = 0;
@@ -52,13 +56,22 @@ myhomeiot_ble_client2:
               auto call = id(${device_name1}_alert_select).make_call();
               call.set_index(0);
               call.perform();
-              return { (uint8_t)(index == 2 ? 0x01 : 0x02) };
+              return { (uint8_t)(index == 2 || index == 3 ? 0x01 : 0x02) };
             }
-            else if (prev_value == 5)
+            else if (prev_value == 9)
               return { (uint8_t) 0x02 };
             else
               return {};
           }
+      - service_uuid: '1802'
+        characteristic_uuid: '2A06'
+        skip_empty: true
+        delay: !lambda |-
+          return id(${device_name1}_alert2_val) == 0x01 ? ${delay_green_red} : id(${device_name1}_alert2_val) == 0x02 ? ${delay_red_green} : 0;
+        value: !lambda |-
+          if (id(${device_name1}_alert2_val) > 0)
+            return { (uint8_t) id(${device_name1}_alert2_val) };
+          return {};
 
     on_connect:
       then:
@@ -91,6 +104,10 @@ globals:
      type: int
      restore_value: no
      initial_value: '0'
+   - id: ${device_name1}_alert2_val
+     type: int
+     restore_value: no
+     initial_value: '0'
 
 select:
   - platform: template
@@ -101,8 +118,12 @@ select:
      - "Off"
      - "Green light (once)"
      - "Red light (once)"
+     - "Red + green light (once)"
+     - "Green + red light (once)"
      - "Green light (every update)"
      - "Red light (every update)"
+     - "Red + green light (every update)"
+     - "Green + red light (every update)"
      - "Green light (always)"
     initial_option: "Off"
     restore_value: true

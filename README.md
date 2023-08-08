@@ -19,7 +19,7 @@ You can take a look at samples of usage of those components in [examples](exampl
 ## [BLE Client2](components/myhomeiot_ble_client2)
 Copy of [myhomeiot BLE Client](https://github.com/myhomeiot/esphome-components/tree/main) that allows:
 - To read set of characteristics from device at the **same** connection.
-- To <a name="write"></a>write characteristics (when option `value` presents). Examples:
+- To <a name="write"></a>write characteristics (when option `value` presents). You can skip executing Write-command when data array is empty by setting option `skip_empty` to `true`. Examples:
 ```yaml
       - service_uuid: '0000fff0-0000-1000-8000-00805f9b34fb'
         characteristic_uuid: '0000fff1-0000-1000-8000-00805f9b34fb'
@@ -27,6 +27,7 @@ Copy of [myhomeiot BLE Client](https://github.com/myhomeiot/esphome-components/t
         
       - service_uuid: '0000fff0-0000-1000-8000-00805f9b34fb'
         characteristic_uuid: '0000fff1-0000-1000-8000-00805f9b34fb'
+        skip_empty: true
         value: !lambda |-
           return {0xFD, 0x37, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xCB};
 ```
@@ -45,11 +46,19 @@ button:
       - myhomeiot_ble_client2.force_update:
           id: my_ble_client
       # - lambda: |-
-      #     id(my_ble_client).force_update();
+      #     id(my_ble_client).force_update(); // same with lambda
 
 myhomeiot_ble_client2:
   - mac_address: "01:23:45:67:89:AB"
     id: my_ble_client
+```
+- To <a name="delay"></a>delay service launching with option or lambda `delay`. Example:
+```yaml
+      - service_uuid: '180F'
+        characteristic_uuid: '2A19'
+        delay: 3s
+        # delay: !lambda |-
+        #   return 3000; // same with lambda in microseconds
 ```
 
 Difference from build-in [ESPHome BLE Client](https://esphome.io/components/sensor/ble_client.html):

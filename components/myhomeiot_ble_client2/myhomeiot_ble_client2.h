@@ -22,10 +22,16 @@ public:
   uint16_t start_handle_;
   uint16_t end_handle_;
   uint16_t char_handle_;
+  bool processed;
 
   bool is_write() { return this->type == 1; }
   bool is_notify() { return this->type == 2; }
-  void reset() { this->start_handle_ = this->end_handle_ = this->char_handle_ = ESP_GATT_ILLEGAL_HANDLE; }
+  bool is_processed() { return this->processed; }
+  void set_processed() { this->processed = true; }
+  void reset() {
+    this->start_handle_ = this->end_handle_ = this->char_handle_ = ESP_GATT_ILLEGAL_HANDLE;
+    processed = false;
+  }
   void set_service_uuid16(uint16_t uuid) { this->service_uuid_ = esp32_ble_tracker::ESPBTUUID::from_uint16(uuid); }
   void set_service_uuid32(uint32_t uuid) { this->service_uuid_ = esp32_ble_tracker::ESPBTUUID::from_uint32(uuid); }
   void set_service_uuid128(uint8_t *uuid) { this->service_uuid_ = esp32_ble_tracker::ESPBTUUID::from_raw(uuid); }
@@ -33,20 +39,37 @@ public:
   void set_char_uuid32(uint32_t uuid) { this->char_uuid_ = esp32_ble_tracker::ESPBTUUID::from_uint32(uuid); }
   void set_char_uuid128(uint8_t *uuid) { this->char_uuid_ = esp32_ble_tracker::ESPBTUUID::from_raw(uuid); }
   void set_notify() { this->type = 2; }
+  void set_skip_empty() { this->skip_empty_ = true; }
+  bool get_skip_empty() { return this->skip_empty_; }
+
+  void set_delay_simple(uint32_t value) {
+    this->delay_simple_ = value;
+    this->has_simple_delay_ = true;
+  }
+  void set_delay_template(std::function<uint32_t()> func) {
+    this->delay_template_ = std::move(func);
+    this->has_simple_delay_ = false;
+  }
+  uint32_t get_delay() { return this->has_simple_delay_ ? this->delay_simple_ : this->delay_template_(); }
+
   void set_value_simple(const std::vector<uint8_t> &value) {
-    type = 1;
+    this->type = 1;
     this->value_simple_ = value;
-    has_simple_value_ = true;
+    this->has_simple_value_ = true;
   }
   void set_value_template(std::function<std::vector<uint8_t>()> func) {
-    type = 1;
+    this->type = 1;
     this->value_template_ = std::move(func);
-    has_simple_value_ = false;
+    this->has_simple_value_ = false;
   }
   std::vector<uint8_t> get_value() { return this->has_simple_value_ ? this->value_simple_ : this->value_template_(); }
 
 private:
   uint8_t type = 0;
+  bool skip_empty_ = false;
+  bool has_simple_delay_ = true;
+  uint32_t delay_simple_ = 0;
+  std::function<uint32_t()> delay_template_{};
   bool has_simple_value_ = true;
   std::vector<uint8_t> value_simple_;
   std::function<std::vector<uint8_t>()> value_template_{};
@@ -54,15 +77,20 @@ private:
 
 class MyHomeIOT_BLEClient2 : public PollingComponent, public myhomeiot_ble_host::MyHomeIOT_BLEClientNode {
 public:
-  void setup() override { this->state_ = MYHOMEIOT_IDLE; }
+  void setup() override {
+    this->state_ = MYHOMEIOT_IDLE;
+    for (auto *service : this->services)
+      if (service->is_notify())
+        this->has_notify = true;
+  }
 
   void dump_config() override {
     ESP_LOGCONFIG(TAG, "MyHomeIOT BLE Client V2");
     ESP_LOGCONFIG(TAG, "  MAC address: %s", to_string(this->address_).c_str());
-    if (services.empty())
+    if (this->services.empty())
       ESP_LOGW(TAG, "  No one service defined! Device is undiscovered.");
     else {
-      for (int i = 0; i < services.size(); i++)
+      for (int i = 0; i < this->services.size(); i++)
         ESP_LOGCONFIG(TAG, "  %d) %s Service UUID: %s,  Characteristic UUID: %s", i + 1,
                       this->services[i]->is_notify()  ? "Notify"
                       : this->services[i]->is_write() ? "Write"
@@ -77,6 +105,10 @@ public:
       this->connect();
     else if (this->state_ == MYHOMEIOT_ESTABLISHED)
       this->disconnect();
+    else if (this->state_ == MYHOMEIOT_CONNECTED && this->wait_until > 0 && this->wait_until < millis()) {
+      ESP_LOGD(TAG, "[%s] Time to wake up", to_string(this->address_).c_str());
+      process_next_service();
+    }
   }
 
   void add_on_connect_callback(std::function<void(int, const MyHomeIOT_BLEClient2 &)> &&callback) {
@@ -243,14 +275,7 @@ public:
   void set_address(uint64_t address) { this->address_ = address; }
   float get_setup_priority() const override { return setup_priority::DATA; }
   const uint8_t *remote_bda() const { return remote_bda_; }
-
   void add_service(MyHomeIOT_BLEClientService *service) { this->services.push_back(service); }
-  void add_service(uint16_t service_uuid, uint16_t char_uuid) {
-    MyHomeIOT_BLEClientService *service = new MyHomeIOT_BLEClientService();
-    service->set_service_uuid16(service_uuid);
-    service->set_char_uuid16(char_uuid);
-    this->services.push_back(service);
-  }
 
 protected:
   std::string to_string(uint64_t address) const {
@@ -270,6 +295,8 @@ protected:
   int processing_service;
   std::vector<MyHomeIOT_BLEClientService *> services;
   bool stop_processing = false;
+  bool has_notify = false;
+  uint32_t wait_until = 0;
   char temp_str[65];
 
   void connect() {
@@ -312,9 +339,10 @@ protected:
 
   void reset_client() {
     this->stop_processing = false;
-    this->processing_service = -1;
-    for (int i = 0; i < this->services.size(); i++)
-      this->services[i]->reset();
+    this->processing_service = 0;
+    this->wait_until = 0;
+    for (auto *service : this->services)
+      service->reset();
   }
 
   void vec2str(const std::vector<uint8_t> &value) {
@@ -324,28 +352,59 @@ protected:
   }
 
   bool process_next_service() {
-    this->processing_service++;
-    while (this->processing_service < this->services.size() &&
-           this->services[this->processing_service]->start_handle_ == ESP_GATT_ILLEGAL_HANDLE)
-      this->processing_service++;
+    for (; true; this->processing_service++) {
 
-    if (this->stop_processing || this->processing_service >= this->services.size()) {
-      this->status_clear_warning();
-      bool has_notify = false;
-      for (int j = 0; j < this->services.size(); j++)
-        if (this->services[j]->is_notify())
-          has_notify = true;
-      if (!this->stop_processing && has_notify) {
-        ESP_LOGD(TAG, "[%s] All services processed, but need to wait notifies", to_string(this->address_).c_str());
+      if (this->stop_processing || this->processing_service >= this->services.size()) {
+        this->status_clear_warning();
+        if (!this->stop_processing && this->has_notify) {
+          ESP_LOGD(TAG, "[%s] All services processed, but need to wait notifies", to_string(this->address_).c_str());
+          return false;
+        }
+        ESP_LOGV(TAG, "[%s] All services processed", to_string(this->address_).c_str());
+        this->is_update_requested_ = false;
+        this->state_ = MYHOMEIOT_ESTABLISHED;
         return false;
       }
-      this->is_update_requested_ = false;
-      this->state_ = MYHOMEIOT_ESTABLISHED;
-      ESP_LOGV(TAG, "[%s] All services processed", to_string(this->address_).c_str());
-      return false;
+
+      if (this->services[this->processing_service]->is_processed() ||
+          this->services[this->processing_service]->start_handle_ == ESP_GATT_ILLEGAL_HANDLE)
+        continue;
+
+      if (this->wait_until > 0 && this->wait_until > millis())
+        return false;
+
+      if (this->wait_until == 0) {
+        uint32_t delay = this->services[this->processing_service]->get_delay();
+        if (delay > 0) {
+          ESP_LOGD(TAG, "[%s] Waiting for %dms for service[%d] (%s)", to_string(this->address_).c_str(), delay,
+                   this->processing_service + 1, this->services[this->processing_service]->service_uuid_.to_string().c_str());
+          this->wait_until = millis() + delay;
+          return false;
+        }
+      }
+
+      this->wait_until = 0;
+      this->services[this->processing_service]->set_processed();
+
+      if (process_service(this->processing_service))
+        return true;
+
+      continue;
+    }
+  }
+
+  bool process_service(int i) {
+    std::vector<uint8_t> value;
+
+    if (this->services[i]->is_write()) {
+      value = services[i]->get_value();
+      if (value.empty() && this->services[i]->get_skip_empty()) {
+        ESP_LOGD(TAG, "[%s] Skip service[%d] (%s) cause nothing to send", to_string(this->address_).c_str(), i + 1,
+                 this->services[i]->service_uuid_.to_string().c_str());
+        return false;
+      }
     }
 
-    int i = this->processing_service;
     uint16_t offset = 0;
     esp_gattc_char_elem_t result;
     while (true) {
@@ -375,7 +434,6 @@ protected:
           }
 
         } else if (this->services[i]->is_write()) {
-
           esp_gatt_write_type_t write_type;
           if (result.properties & ESP_GATT_CHAR_PROP_BIT_WRITE) {
             write_type = ESP_GATT_WRITE_TYPE_RSP;
@@ -388,7 +446,6 @@ protected:
             break;
           }
 
-          std::vector<uint8_t> value = services[i]->get_value();
           vec2str(value);
           ESP_LOGD(TAG, "[%s] Sending %d bytes %sfor service[%d] (%s): [%s%s]", to_string(this->address_).c_str(), value.size(),
                    write_type == ESP_GATT_WRITE_TYPE_RSP ? "(with response) " : "", i + 1,
@@ -418,7 +475,6 @@ protected:
                this->services[i]->char_uuid_.to_string().c_str());
       report_error();
     }
-
     return true;
   }
 };
