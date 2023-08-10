@@ -7,7 +7,7 @@ substitutions:
   delay_red_green: "3000"
 
 esphome:
-  name: mclh-09-gateway
+  name: mclh-09-ble-client2
 
 esp32:
   board: esp32dev
