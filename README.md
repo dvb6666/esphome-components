@@ -69,10 +69,6 @@ Difference from build-in [ESPHome BLE Client](https://esphome.io/components/sens
 #### ESPHome configuration example
 Note: This example needs three template sensors with id: battery_level, tx_power, link_loss
 ```yaml
-external_components:
-  - source: github://myhomeiot/esphome-components
-  - source: github://dvb6666/esphome-components
-
 esp32_ble_tracker:
 myhomeiot_ble_host:
 myhomeiot_ble_client2:
@@ -92,6 +88,29 @@ myhomeiot_ble_client2:
           if (service==1) id(battery_level).publish_state(x[0]);
           else if (service==2) id(tx_power).publish_state(x[0]);
           else if (service==3) id(link_loss).publish_state(x[0]);
+
+external_components:
+  - source: github://myhomeiot/esphome-components
+  - source: github://dvb6666/esphome-components
+```
+
+## [MCLH 09 Gateway](components/mclh_09_gateway)
+Component-helper for control any quantity of MCLH-09 flower-sensors with [BLE Client2](#ble-client2).
+For every MCLH-09 device it will create sensors: battery level, temperature, soil, light, rssi.
+#### ESPHome configuration example
+```yaml
+esp32_ble_tracker:
+myhomeiot_ble_host:
+mclh_09_gateway:
+  mac_address:
+    - "00:00:00:11:11:11"
+    - "00:00:00:22:22:22"
+    - "00:00:00:33:33:33"
+    - "00:00:00:44:44:44"
+
+external_components:
+  - source: github://myhomeiot/esphome-components
+  - source: github://dvb6666/esphome-components
 ```
 
 **More configuration examples you can find in [examples](examples) folder.**

@@ -1,0 +1,49 @@
+esphome:
+  name: mclh-09-gateway
+preferences:
+  flash_write_interval: 20min # should be much bigger than ble_client update_interval
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+api:
+  reboot_timeout: 0s
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+ota:
+  password: !secret ota_password_ble
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 1100ms
+    window: 1100ms
+    active: true
+myhomeiot_ble_host:
+
+mclh_09_gateway:
+  id: my_mclh_09
+  interval: 15min
+  mac_address:
+    - !secret mclh09_001_mac
+    - !secret mclh09_002_mac
+    - !secret mclh09_003_mac
+    - !secret mclh09_004_mac
+
+button:
+  - platform: restart
+    name: "Restart"
+    entity_category: diagnostic
+  - platform: template
+    name: "Force update"
+    entity_category: diagnostic
+    on_press:
+      - mclh_09_gateway.force_update:
+          id: my_mclh_09
+
+external_components:
+  - source: github://myhomeiot/esphome-components
+  - source: github://dvb6666/esphome-components
