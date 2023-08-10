@@ -1,4 +1,6 @@
 #pragma once
+#ifndef MYHOMEIOT_BLE_CLIENT_2
+#define MYHOMEIOT_BLE_CLIENT_2
 
 #ifdef USE_ESP32
 
@@ -506,4 +508,5 @@ private:
 } // namespace myhomeiot_ble_client2
 } // namespace esphome
 
+#endif
 #endif
