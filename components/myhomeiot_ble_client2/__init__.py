@@ -19,6 +19,7 @@ DEPENDENCIES = ["myhomeiot_ble_host"]
 MULTI_CONF = True
 
 CONF_BLE_HOST = "ble_host"
+CONF_ON_ERROR = "on_error"
 CONF_CHARACTERISTIC_UUID = "characteristic_uuid"
 CONF_NOTIFY = "notify"
 CONF_SKIP_EMPTY = "skip_empty"
@@ -42,6 +43,10 @@ MyHomeIOT_BLEClientConnectTrigger = myhomeiot_ble_client2_ns.class_(
 MyHomeIOT_BLEClientValueTrigger = myhomeiot_ble_client2_ns.class_(
     "MyHomeIOT_BLEClientValueTrigger",
     automation.Trigger.template(cg.std_vector.template(cg.uint8), cg.int32),
+)
+MyHomeIOT_BLEClientErrorTrigger = myhomeiot_ble_client2_ns.class_(
+    "MyHomeIOT_BLEClientErrorTrigger",
+    automation.Trigger.template(cg.uint32),
 )
 # Actions
 MyHomeIOT_BLEClientForceUpdateAction = myhomeiot_ble_client2_ns.class_("MyHomeIOT_BLEClientForceUpdateAction", automation.Action)
@@ -70,6 +75,11 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_ON_VALUE): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(MyHomeIOT_BLEClientValueTrigger),
+                }
+            ),
+            cv.Optional(CONF_ON_ERROR): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(MyHomeIOT_BLEClientErrorTrigger),
                 }
             ),
         }
@@ -142,6 +152,9 @@ async def to_code(config):
     for conf in config.get(CONF_ON_VALUE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(cg.std_vector.template(cg.uint8), "x"), (cg.int32, "service"), (BoolRef, "stop_processing"), (MyHomeIOT_BLEClient2ConstRef, "xthis")], conf)
+    for conf in config.get(CONF_ON_ERROR, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [(cg.uint32, "error_count"), (MyHomeIOT_BLEClient2ConstRef, "xthis")], conf)
 
 @automation.register_action(
     "myhomeiot_ble_client2.force_update", MyHomeIOT_BLEClientForceUpdateAction, FORCE_UPDATE_ACTION_SCHEMA

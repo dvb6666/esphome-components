@@ -48,7 +48,7 @@ private:
 class Mclh09Gateway : public Component {
 
 public:
-  Mclh09Gateway(const std::vector<uint64_t> &mac_addresses, uint32_t update_interval = 3600000) {
+  Mclh09Gateway(const std::vector<uint64_t> &mac_addresses, uint32_t update_interval = 3600000, bool error_counting = false) {
     mac_addresses_ = mac_addresses;
     device_count = mac_addresses_.size();
 
@@ -62,6 +62,8 @@ public:
     alert_select = new AlertSelect *[device_count];
     alert_value = new size_t[device_count];
     ble_client = new myhomeiot_ble_client2::MyHomeIOT_BLEClient2 *[device_count];
+    if (error_counting)
+      error_sensor = new sensor::Sensor *[device_count];
 
     // создаём связи между ble-клиентами и сенсорами и регистрируем всё в Esphome
     char buffer[64];
@@ -149,6 +151,7 @@ public:
       snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "rssi");
       rssi_sensor[i]->set_object_id(strdup(buffer));
       rssi_sensor[i]->set_disabled_by_default(false);
+      humi_sensor[i]->set_device_class("signal_strength");
       rssi_sensor[i]->set_icon("mdi:signal");
       rssi_sensor[i]->set_entity_category(ENTITY_CATEGORY_DIAGNOSTIC);
       rssi_sensor[i]->set_state_class(sensor::STATE_CLASS_MEASUREMENT);
@@ -157,27 +160,21 @@ public:
       rssi_sensor[i]->set_force_update(false);
       App.register_sensor(rssi_sensor[i]);
 
-      // ble клиент
-      ble_client[i] = new myhomeiot_ble_client2::MyHomeIOT_BLEClient2();
-      ble_client[i]->set_address(mac_addresses_[i]);
-      ble_client[i]->set_update_interval(update_interval);
-      App.register_component(ble_client[i]);
-
-      myhomeiot_ble_client2::MyHomeIOT_BLEClientService *serv_bat = new myhomeiot_ble_client2::MyHomeIOT_BLEClientService();
-      serv_bat->set_service_uuid16(0x180FULL);
-      serv_bat->set_char_uuid16(0x2A19ULL);
-      ble_client[i]->add_service(serv_bat);
-      myhomeiot_ble_client2::MyHomeIOT_BLEClientService *serv_data = new myhomeiot_ble_client2::MyHomeIOT_BLEClientService();
-      serv_data->set_service_uuid128(
-          (uint8_t *)(const uint8_t[16]){0x1B, 0xC5, 0xD5, 0xA5, 0x02, 0x00, 0xB8, 0xAC, 0xE3, 0x11, 0xC7, 0xEA, 0x00, 0xB6, 0x4C, 0xC4});
-      serv_data->set_char_uuid128(
-          (uint8_t *)(const uint8_t[16]){0x1B, 0xC5, 0xD5, 0xA5, 0x02, 0x00, 0x8A, 0x91, 0xE3, 0x11, 0xCB, 0xEA, 0x20, 0x29, 0x48, 0x55});
-      ble_client[i]->add_service(serv_data);
-      myhomeiot_ble_client2::MyHomeIOT_BLEClientService *serv_alert = new myhomeiot_ble_client2::MyHomeIOT_BLEClientService();
-      serv_alert->set_service_uuid16(0x1802ULL);
-      serv_alert->set_char_uuid16(0x2A06ULL);
-      serv_alert->set_skip_empty();
-      ble_client[i]->add_service(serv_alert);
+      // датчик количества ошибок
+      if (error_counting) {
+        error_sensor[i] = new sensor::Sensor();
+        snprintf(buffer, sizeof(buffer), SENSOR_NAME, i + 1, "errors");
+        error_sensor[i]->set_name(strdup(buffer));
+        snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "errors");
+        error_sensor[i]->set_object_id(strdup(buffer));
+        error_sensor[i]->set_disabled_by_default(false);
+        error_sensor[i]->set_icon("mdi:alert-circle");
+        error_sensor[i]->set_entity_category(ENTITY_CATEGORY_DIAGNOSTIC);
+        error_sensor[i]->set_state_class(sensor::STATE_CLASS_MEASUREMENT);
+        error_sensor[i]->set_accuracy_decimals(0);
+        error_sensor[i]->set_force_update(false);
+        App.register_sensor(error_sensor[i]);
+      }
 
       // alert select
       alert_value[i] = 0;
@@ -188,6 +185,52 @@ public:
       alert_select[i]->set_object_id(strdup(buffer));
       App.register_component(alert_select[i]);
       App.register_select(alert_select[i]);
+
+      // ble-клиент
+      ble_client[i] = new myhomeiot_ble_client2::MyHomeIOT_BLEClient2();
+      ble_client[i]->set_address(mac_addresses_[i]);
+      ble_client[i]->set_update_interval(update_interval);
+      App.register_component(ble_client[i]);
+
+      // сервисы ble-клиента
+      myhomeiot_ble_client2::MyHomeIOT_BLEClientService *serv_bat = new myhomeiot_ble_client2::MyHomeIOT_BLEClientService();
+      serv_bat->set_service_uuid16(0x180FULL);
+      serv_bat->set_char_uuid16(0x2A19ULL);
+      ble_client[i]->add_service(serv_bat);
+
+      myhomeiot_ble_client2::MyHomeIOT_BLEClientService *serv_data = new myhomeiot_ble_client2::MyHomeIOT_BLEClientService();
+      serv_data->set_service_uuid128(
+          (uint8_t *)(const uint8_t[16]){0x1B, 0xC5, 0xD5, 0xA5, 0x02, 0x00, 0xB8, 0xAC, 0xE3, 0x11, 0xC7, 0xEA, 0x00, 0xB6, 0x4C, 0xC4});
+      serv_data->set_char_uuid128(
+          (uint8_t *)(const uint8_t[16]){0x1B, 0xC5, 0xD5, 0xA5, 0x02, 0x00, 0x8A, 0x91, 0xE3, 0x11, 0xCB, 0xEA, 0x20, 0x29, 0x48, 0x55});
+      ble_client[i]->add_service(serv_data);
+
+      myhomeiot_ble_client2::MyHomeIOT_BLEClientService *serv_alert = new myhomeiot_ble_client2::MyHomeIOT_BLEClientService();
+      serv_alert->set_service_uuid16(0x1802ULL);
+      serv_alert->set_char_uuid16(0x2A06ULL);
+      serv_alert->set_skip_empty();
+      serv_alert->set_value_template([=]() -> std::vector<uint8_t> {
+        size_t index = (alert_select[i]->active_index()).value_or(0);
+        size_t prev_value = alert_value[i];
+        if (index >= 4) {
+          if (index == 7 && prev_value == index)
+            return {};
+          alert_value[i] = index;
+          return {(uint8_t)(index == 7 ? 0x00 : index == 4 ? 0x01 : index == 5 ? 0x02 : 0x03)};
+        } else {
+          alert_value[i] = 0;
+          if (index > 0) {
+            auto call = alert_select[i]->make_call();
+            call.set_index(0);
+            call.perform();
+            return {(uint8_t)(index == 1 ? 0x01 : index == 2 ? 0x02 : 0x03)};
+          } else if (prev_value == 7)
+            return {(uint8_t)0x02};
+          else
+            return {};
+        }
+      });
+      ble_client[i]->add_service(serv_alert);
 
       // автоматизации
       (new Automation<std::string, size_t>(new select::SelectStateTrigger(alert_select[i])))
@@ -219,27 +262,14 @@ public:
                 }
               })});
 
-      serv_alert->set_value_template([=]() -> std::vector<uint8_t> {
-        size_t index = (alert_select[i]->active_index()).value_or(0);
-        size_t prev_value = alert_value[i];
-        if (index >= 4) {
-          if (index == 7 && prev_value == index)
-            return {};
-          alert_value[i] = index;
-          return {(uint8_t)(index == 7 ? 0x00 : index == 4 ? 0x01 : index == 5 ? 0x02 : 0x03)};
-        } else {
-          alert_value[i] = 0;
-          if (index > 0) {
-            auto call = alert_select[i]->make_call();
-            call.set_index(0);
-            call.perform();
-            return {(uint8_t)(index == 1 ? 0x01 : index == 2 ? 0x02 : 0x03)};
-          } else if (prev_value == 7)
-            return {(uint8_t)0x02};
-          else
-            return {};
-        }
-      });
+      if (error_counting) {
+        (new Automation<uint32_t, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+             new myhomeiot_ble_client2::MyHomeIOT_BLEClientErrorTrigger(ble_client[i])))
+            ->add_actions({new LambdaAction<uint32_t, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+                [=](uint32_t error_count, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
+                  error_sensor[i]->publish_state(error_count);
+                })});
+      }
     }
   }
 
@@ -265,7 +295,7 @@ private:
   std::vector<uint64_t> mac_addresses_;
   size_t device_count;
   myhomeiot_ble_client2::MyHomeIOT_BLEClient2 **ble_client;
-  sensor::Sensor **batt_sensor, **temp_sensor, **lumi_sensor, **soil_sensor, **humi_sensor, **rssi_sensor;
+  sensor::Sensor **batt_sensor, **temp_sensor, **lumi_sensor, **soil_sensor, **humi_sensor, **rssi_sensor, **error_sensor;
   AlertSelect **alert_select;
   size_t *alert_value;
   std::vector<float> temp_input{1035, 909, 668, 424, 368, 273, 159, 0};

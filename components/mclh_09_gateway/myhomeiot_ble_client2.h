@@ -117,8 +117,12 @@ public:
     this->connect_callback_.add(std::move(callback));
   }
 
-  void add_on_state_callback(std::function<void(std::vector<uint8_t>, int, bool &, const MyHomeIOT_BLEClient2 &)> &&callback) {
+  void add_on_value_callback(std::function<void(std::vector<uint8_t>, int, bool &, const MyHomeIOT_BLEClient2 &)> &&callback) {
     this->value_callback_.add(std::move(callback));
+  }
+
+  void add_on_error_callback(std::function<void(int32_t, const MyHomeIOT_BLEClient2 &)> &&callback) {
+    this->error_callback_.add(std::move(callback));
   }
 
   void force_update() {
@@ -289,10 +293,12 @@ protected:
 
   CallbackManager<void(int, const MyHomeIOT_BLEClient2 &)> connect_callback_{};
   CallbackManager<void(std::vector<uint8_t>, int, bool &, const MyHomeIOT_BLEClient2 &)> value_callback_{};
+  CallbackManager<void(int32_t, const MyHomeIOT_BLEClient2 &)> error_callback_{};
   bool is_update_requested_;
   uint64_t address_;
   esp_bd_addr_t remote_bda_;
   int rssi_ = 0;
+  uint32_t error_count_ = 0;
   uint16_t conn_id_;
   int processing_service;
   std::vector<MyHomeIOT_BLEClientService *> services;
@@ -337,6 +343,7 @@ protected:
   void report_error(esp32_ble_tracker::ClientState state = MYHOMEIOT_ESTABLISHED) {
     this->state_ = state;
     this->status_set_warning();
+    this->error_callback_.call(++(this->error_count_), *this);
   }
 
   void reset_client() {
@@ -491,8 +498,15 @@ public:
 class MyHomeIOT_BLEClientValueTrigger : public Trigger<std::vector<uint8_t>, int, bool &, const MyHomeIOT_BLEClient2 &> {
 public:
   explicit MyHomeIOT_BLEClientValueTrigger(MyHomeIOT_BLEClient2 *parent) {
-    parent->add_on_state_callback([this](std::vector<uint8_t> value, int service, bool &stop_processing,
+    parent->add_on_value_callback([this](std::vector<uint8_t> value, int service, bool &stop_processing,
                                          const MyHomeIOT_BLEClient2 &xthis) { this->trigger(value, service, stop_processing, xthis); });
+  }
+};
+
+class MyHomeIOT_BLEClientErrorTrigger : public Trigger<uint32_t, const MyHomeIOT_BLEClient2 &> {
+public:
+  explicit MyHomeIOT_BLEClientErrorTrigger(MyHomeIOT_BLEClient2 *parent) {
+    parent->add_on_error_callback([this](uint32_t error_count, const MyHomeIOT_BLEClient2 &xthis) { this->trigger(error_count, xthis); });
   }
 };
 
