@@ -9,9 +9,8 @@ from esphome.const import (
 )
 
 CODEOWNERS = ["@dvb666"]
-AUTO_LOAD = ["sensor", "select"]
+AUTO_LOAD = ["sensor", "select", "myhomeiot_ble_client2"]
 DEPENDENCIES = ["myhomeiot_ble_host"]
-MULTI_CONF = False
 
 CONF_BLE_HOST = "ble_host"
 CONF_ERROR_COUNTING = "error_counting"

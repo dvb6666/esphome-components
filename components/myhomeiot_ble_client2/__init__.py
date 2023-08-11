@@ -1,3 +1,5 @@
+import logging
+
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import myhomeiot_ble_host, esp32_ble_tracker
@@ -13,6 +15,8 @@ from esphome.const import (
     CONF_VALUE,
     CONF_DELAY,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 CODEOWNERS = ["@dvb666"]
 DEPENDENCIES = ["myhomeiot_ble_host"]
@@ -55,8 +59,8 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(MyHomeIOT_BLEClient2),
-            cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
-            cv.Required(CONF_SERVICES): cv.ensure_list(
+            cv.Optional(CONF_MAC_ADDRESS): cv.mac_address,
+            cv.Optional(CONF_SERVICES): cv.ensure_list(
                 {
                     cv.GenerateID(): cv.declare_id(MyHomeIOT_BLEClientService),
                     cv.Required(CONF_SERVICE_UUID): esp32_ble_tracker.bt_uuid,
@@ -99,9 +103,11 @@ def versiontuple(v):
     return tuple(map(int, (v.split("."))))
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
+    if CONF_MAC_ADDRESS not in config:
+        _LOGGER.warning('No MAC-address. Component will be ignored')
+        return
 
-    reversed = versiontuple(const.__version__.split("-")[0]) >= versiontuple("2021.9.0")
+    var = cg.new_Pvariable(config[CONF_ID])
 
     await cg.register_component(var, config)
     await myhomeiot_ble_host.register_ble_client(var, config)

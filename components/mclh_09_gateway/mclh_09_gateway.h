@@ -4,6 +4,7 @@
 
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 #include "esphome/components/myhomeiot_ble_host/myhomeiot_ble_host.h"
+#include "esphome/components/myhomeiot_ble_client2/myhomeiot_ble_client2.h"
 #include "esphome/components/select/automation.h"
 #include "esphome/components/select/select.h"
 #include "esphome/components/sensor/sensor.h"
@@ -11,8 +12,6 @@
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
 #include "esphome/core/preferences.h"
-
-#include "myhomeiot_ble_client2.h"
 
 namespace esphome {
 namespace mclh_09_gateway {
