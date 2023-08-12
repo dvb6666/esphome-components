@@ -150,7 +150,7 @@ public:
       snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "rssi");
       rssi_sensor[i]->set_object_id(strdup(buffer));
       rssi_sensor[i]->set_disabled_by_default(false);
-      humi_sensor[i]->set_device_class("signal_strength");
+      rssi_sensor[i]->set_device_class("signal_strength");
       rssi_sensor[i]->set_icon("mdi:signal");
       rssi_sensor[i]->set_entity_category(ENTITY_CATEGORY_DIAGNOSTIC);
       rssi_sensor[i]->set_state_class(sensor::STATE_CLASS_MEASUREMENT);
