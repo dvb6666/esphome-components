@@ -204,8 +204,9 @@ public:
           this->services[i]->end_handle_ = param->search_res.end_handle;
           found = true;
         }
-      if (!found)
+      if (!found) {
         ESP_LOGV(TAG, "[%s] SEARCH_RES_EVT got unused service (%s)", to_string(this->address_).c_str(), uuid.to_string().c_str());
+      }
       break;
     }
     case ESP_GATTC_SEARCH_CMPL_EVT: {
