@@ -21,7 +21,6 @@ ota:
   password: !secret ota_password_ble
 
 mqtt:
-  id: mqtt_client
   broker: !secret mqtt_host
   username: !secret mqtt_user
   password: !secret mqtt_pass
