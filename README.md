@@ -113,4 +113,7 @@ external_components:
   - source: github://dvb6666/esphome-components
 ```
 
+## [MCLH 09 MQTT Gateway](components/mclh_09_mqtt_gateway)
+Same as [MCLH 09 Gateway](#mclh-09-gateway), but for MQTT. Config [example](examples/mclh-09-gateway-mqtt.yaml).
+
 **More configuration examples you can find in [examples](examples) folder.**

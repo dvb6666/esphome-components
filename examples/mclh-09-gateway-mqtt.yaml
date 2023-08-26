@@ -1,0 +1,82 @@
+substitutions:
+  device_name: "mclh-09-gateway-mqtt"
+
+esphome:
+  name: ${device_name}
+preferences:
+  flash_write_interval: 20min # should be much bigger than ble_client update_interval
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+ota:
+  password: !secret ota_password_ble
+
+mqtt:
+  id: mqtt_client
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pass
+  topic_prefix: "esphome/devices/mclh09-gateway"
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 1100ms
+    window: 1100ms
+    active: true
+myhomeiot_ble_host:
+
+mclh_09_mqtt_gateway:
+  id: mclh_09_gateway
+  interval: 10min
+  error_counting: true
+  topic_prefix: "esphome/devices/mclh09-sensors"
+  mac_address:
+    - !secret mclh09_001_mac
+    - !secret mclh09_002_mac
+    - !secret mclh09_003_mac
+    - !secret mclh09_004_mac
+
+button:
+  - platform: restart
+    name: "Restart"
+    entity_category: diagnostic
+  - platform: template
+    name: "Force update"
+    entity_category: diagnostic
+    on_press:
+      - mclh_09_gateway.force_update:
+          id: mclh_09_gateway
+
+number:
+  - platform: template
+    name: "Update interval"
+    icon: "mdi:timer-outline"
+    unit_of_measurement: 'min'
+    step: 1
+    min_value: 1
+    max_value: 360
+    restore_value: true
+    initial_value: 15
+    entity_category: config
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(mclh_09_gateway).set_update_interval(60000 * (uint32_t)x);
+
+sensor:
+  - platform: uptime
+    name: "Uptime"
+
+external_components:
+  - source: github://myhomeiot/esphome-components
+  - source: github://dvb6666/esphome-components
