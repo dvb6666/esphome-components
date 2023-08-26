@@ -202,7 +202,7 @@ public:
     ESP_LOGV(this->id.c_str(), "Setup");
     // use preferences to load/save selected alert
     this->pref_ = global_preferences->make_preference<size_t>(fnv1_hash(this->id), true);
-    if (!this->pref_.load(&this->alert_selected) || this->alert_selected < 0 || this->alert_selected >= alert_options.size()) {
+    if (!this->pref_.load(&this->alert_selected) || this->alert_selected >= alert_options.size()) {
       ESP_LOGD(this->id.c_str(), "Unkwnown/new alert state pref: %d", this->alert_selected);
       this->alert_selected = 0;
     }
@@ -261,9 +261,9 @@ public:
     // sensor data updated
     if (this->connected && this->online && this->new_state) {
       snprintf_P(temp_buffer, sizeof(temp_buffer),
-                 PSTR("{\"%s\":%d, \"%s\":%.1f, \"%s\":%.0f, \"%s\":%.0f, \"%s\":%.0f, \"%s\":%d, \"%s\":%d, \"time\":%ld}"), BATT.id,
+                 PSTR("{\"%s\":%d, \"%s\":%.1f, \"%s\":%.0f, \"%s\":%.0f, \"%s\":%.0f, \"%s\":%d, \"%s\":%d, \"time\":%u}"), BATT.id,
                  this->batt, TEMP.id, this->temp, LUMI.id, this->lumi, SOIL.id, this->soil, HUMI.id, this->humi, RSSI.id, this->rssi,
-                 ERRORS.id, this->error_count, millis());
+                 ERRORS.id, this->error_count, millis() / 1000);
       ESP_LOGD(this->id.c_str(), "Sending sensor data: '%s'", temp_buffer);
       if (!this->mqtt_client_->publish(this->state_topic, temp_buffer, strlen(temp_buffer))) {
         ESP_LOGE(this->id.c_str(), "Failed to send sensor data '%s' into topic '%s'", temp_buffer, this->state_topic.c_str());
@@ -316,7 +316,7 @@ private:
   ESPPreferenceObject pref_;
   uint64_t address_;
   std::string id, name, topic_prefix, status_topic, state_topic, alert_state_topic, alert_set_topic;
-  char temp_buffer[1024], temp_digit[2];
+  char temp_buffer[1024], temp_digit[8];
   bool device_has_availability;
   const char *payload_online, *payload_offline;
   bool connected = false, online = false, prev_online = false, new_state = false, new_alert = false;
@@ -396,7 +396,7 @@ private:
   }
 
   bool discover_select(const Select *sel) {
-    snprintf_P(temp_buffer, sizeof(temp_buffer), "%s/select/mclh09-%012llx/alert/config",
+    snprintf_P(temp_buffer, sizeof(temp_buffer), PSTR("%s/select/mclh09-%012llx/alert/config"),
                this->mqtt_client_->get_discovery_info().prefix.c_str(), this->address_);
     std::string config_topic{temp_buffer};
     ESP_LOGV(this->id.c_str(), "Config Topic (%d bytes): '%s'", config_topic.length(), config_topic.c_str());
@@ -423,7 +423,7 @@ private:
 
     ESP_LOGV(this->id.c_str(), "Config Data (%d bytes): '%s'", strlen(temp_buffer), temp_buffer);
     if (!this->mqtt_client_->publish(config_topic, temp_buffer, strlen(temp_buffer), 0, this->mqtt_client_->get_discovery_info().retain)) {
-      ESP_LOGE(this->id.c_str(), "Failed to send discovery for select '%s' (%d bytes) into topic '%s'", sel->name, (temp_buffer),
+      ESP_LOGE(this->id.c_str(), "Failed to send discovery for select '%s' (%d bytes) into topic '%s'", sel->name, strlen(temp_buffer),
                config_topic.c_str());
       return false;
     }
@@ -431,7 +431,7 @@ private:
   }
 
   bool discover_sensor(const Sensor *sens) {
-    snprintf_P(temp_buffer, sizeof(temp_buffer), "%s/sensor/mclh09-%012llx/%s/config",
+    snprintf_P(temp_buffer, sizeof(temp_buffer), PSTR("%s/sensor/mclh09-%012llx/%s/config"),
                this->mqtt_client_->get_discovery_info().prefix.c_str(), this->address_, sens->id);
     std::string config_topic{temp_buffer};
     ESP_LOGV(this->id.c_str(), "Config Topic (%d bytes): '%s'", config_topic.length(), config_topic.c_str());
@@ -445,8 +445,8 @@ private:
     }
     if (sens->accuracy > 0) {
       strncat_P(temp_buffer, PSTR(", \"sug_dsp_prc\":"), sizeof(temp_buffer) - strlen(temp_buffer));
-      snprintf_P(temp_digit, sizeof(temp_digit), "%d", sens->accuracy);
-      strncat(temp_buffer, temp_digit, sizeof(temp_buffer) - strlen(temp_buffer));
+      snprintf_P(temp_digit, sizeof(temp_digit), PSTR("%d"), sens->accuracy);
+      strncpy(temp_buffer + strlen(temp_buffer), temp_digit, sizeof(temp_buffer) - strlen(temp_buffer));
     }
 
     strncat_P(temp_buffer, PSTR(", \"stat_t\":\"~/"), sizeof(temp_buffer) - strlen(temp_buffer));
@@ -457,7 +457,7 @@ private:
 
     ESP_LOGV(this->id.c_str(), "Config Data (%d bytes): '%s'", strlen(temp_buffer), temp_buffer);
     if (!this->mqtt_client_->publish(config_topic, temp_buffer, strlen(temp_buffer), 0, this->mqtt_client_->get_discovery_info().retain)) {
-      ESP_LOGE(this->id.c_str(), "Failed to send discovery for sensor '%s' (%d bytes) into topic '%s'", sens->name, (temp_buffer),
+      ESP_LOGE(this->id.c_str(), "Failed to send discovery for sensor '%s' (%d bytes) into topic '%s'", sens->name, strlen(temp_buffer),
                config_topic.c_str());
       return false;
     }
