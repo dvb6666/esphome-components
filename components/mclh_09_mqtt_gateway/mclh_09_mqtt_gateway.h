@@ -47,13 +47,11 @@ struct Select {
 };
 
 const char *MEASURE = "measurement", *HUMIDITY = "humidity";
-// const char *ALERT_OPTS = "\"Off\", \"Red (once)\", \"Green (once)\", \"Red + green (once)\", \"Red (every update)\", \"Green (every "
-//                          "update)\", \"Red + green (every update)\", \"Green (always)\"";
 Sensor BATT{"batt", "Battery", "%", "battery", NULL, MEASURE, 0, false};
 Sensor TEMP{"temp", "Temperature", "°C", "temperature", NULL, MEASURE, 1, false};
-Sensor LUMI{"lumi", "Light", "lx", "illuminance", NULL, MEASURE, 0, false};
-Sensor SOIL{"soil", "Soil", "%", HUMIDITY, NULL, MEASURE, 0, false};
-Sensor HUMI{"humi", "Humidity", "%", HUMIDITY, NULL, MEASURE, 0, false};
+Sensor LUMI{"lumi", "Illuminance", "lx", "illuminance", NULL, MEASURE, 0, false};
+Sensor SOIL{"soil", "Soil moisture", "%", HUMIDITY, NULL, MEASURE, 0, false};
+Sensor HUMI{"humi", "Air humidity", "%", HUMIDITY, NULL, MEASURE, 0, false};
 Sensor RSSI{"rssi", "RSSI", "dBm", "signal_strength", "mdi:signal", NULL, 0, true};
 Sensor ERRORS{"errors", "Error count", NULL, NULL, "mdi:alert-circle", MEASURE, 0, true};
 
