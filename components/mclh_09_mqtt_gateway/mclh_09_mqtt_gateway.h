@@ -47,10 +47,10 @@ struct Select {
 };
 
 const char *MEASURE = "measurement", *HUMIDITY = "humidity";
-Sensor BATT{"batt", "Battery", "%", "battery", NULL, MEASURE, 0, false};
+Sensor BATT{"batt", "Battery", "%", "battery", NULL, MEASURE, 0, true};
 Sensor TEMP{"temp", "Temperature", "°C", "temperature", NULL, MEASURE, 1, false};
 Sensor LUMI{"lumi", "Illuminance", "lx", "illuminance", NULL, MEASURE, 0, false};
-Sensor SOIL{"soil", "Soil moisture", "%", HUMIDITY, NULL, MEASURE, 0, false};
+Sensor SOIL{"soil", "Soil moisture", "%", HUMIDITY, "mdi:water", MEASURE, 0, false};
 Sensor HUMI{"humi", "Air humidity", "%", HUMIDITY, NULL, MEASURE, 0, false};
 Sensor RSSI{"rssi", "RSSI", "dBm", "signal_strength", "mdi:signal", NULL, 0, true};
 Sensor ERRORS{"errors", "Error count", NULL, NULL, "mdi:alert-circle", MEASURE, 0, true};
