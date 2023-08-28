@@ -282,6 +282,12 @@ public:
       ble_client[i]->force_update();
   }
 
+  void set_update_interval(uint32_t update_interval) {
+    ESP_LOGD(TAG, "Setting update interval to %dms", update_interval);
+    for (size_t i = 0; i < device_count; i++)
+      ble_client[i]->set_update_interval(update_interval);
+  }
+
 protected:
   std::string to_string(uint64_t address) const {
     char buffer[20];
