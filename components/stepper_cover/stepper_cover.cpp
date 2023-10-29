@@ -12,7 +12,7 @@ static const char *const TAG = "stepper.cover";
 
 StepperCover::StepperCover(stepper::Stepper *stepper, uint32_t max_position, uint32_t update_delay)
     : stepper_(stepper), max_position_(max_position), update_delay_(update_delay) {
-  one_persent_ = max_position / 100;
+  this->one_persent_ = max_position / 100;
 }
 
 void StepperCover::setup() {
@@ -86,6 +86,12 @@ CoverTraits StepperCover::get_traits() {
 void StepperCover::set_speed(int speed) {
   ESP_LOGD(TAG, "set_speed(): %d steps/s", speed);
   this->stepper_->set_max_speed(speed);
+}
+
+void StepperCover::set_max_position(uint32_t max_position) {
+  ESP_LOGD(TAG, "set_max_position(): %d steps", max_position);
+  this->max_position_ = max_position;
+  this->one_persent_ = max_position / 100;
 }
 
 void StepperCover::set_update_delay(uint32_t update_delay) {

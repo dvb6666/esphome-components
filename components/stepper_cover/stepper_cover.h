@@ -16,6 +16,7 @@ public:
   void dump_config() override;
   void loop() override;
   void set_speed(int speed);
+  void set_max_position(uint32_t max_position);
   void set_update_delay(uint32_t update_delay);
 
 protected:
