@@ -57,7 +57,7 @@ void StepperCover::control(const CoverCall &call) {
 
 void StepperCover::loop() {
   if (this->moving_ && (this->stepper_->has_reached_target() ||
-                        this->next_update_ <= millis() && abs(this->last_position_ - this->stepper_->current_position) >= one_persent_)) {
+                        (this->next_update_ <= millis() && abs(this->last_position_ - this->stepper_->current_position) >= one_persent_))) {
     if (this->stepper_->has_reached_target()) {
       ESP_LOGD(TAG, "loop(): reached target %d", this->target_position_);
       this->current_operation = COVER_OPERATION_IDLE;
