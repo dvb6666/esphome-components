@@ -1,0 +1,93 @@
+esphome:
+  name: test-stepper-cover
+  friendly_name: test-stepper-cover
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  # encryption:
+  #   key: !secret api_key_test
+
+ota:
+  password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+cover:
+  - platform: stepper_cover
+    id: my_cover
+    name: Cover
+    stepper: my_stepper # шаговик, которым управляем
+    max_position: 2000 # "длина" шторы в шагах
+    update_delay: 300ms # задержка между публикациями состояния до дефолту (меняется number-ом "Update Delay"; см.ниже)
+
+stepper:
+  # - platform: a4988
+  #   id: my_stepper
+  #   step_pin: 12
+  #   dir_pin: 14
+  #   sleep_pin: 13
+  #   max_speed: 650 steps/s
+  #   acceleration: 500
+  #   deceleration: 500
+  - platform: uln2003
+    id: my_stepper
+    pin_a: 33
+    pin_b: 25
+    pin_c: 26
+    pin_d: 27
+    max_speed: 300 steps/s
+    sleep_when_done: true
+    acceleration: 400
+    deceleration: 400
+
+number:
+  - platform: template
+    # изменение скорости шаговика
+    name: Speed Stepper
+    optimistic: true
+    entity_category: config
+    mode: box
+    min_value: 100
+    max_value: 700
+    icon: mdi:cog-transfer
+    unit_of_measurement: steps/s
+    initial_value: 300
+    restore_value: true
+    step: 1
+    on_value:
+      then:
+        - lambda: 'id(my_cover).set_speed((int)x);'
+  - platform: template
+    # изменение задержки между публикациями состояния
+    name: Update Delay
+    optimistic: true
+    entity_category: config
+    mode: box
+    min_value: 100
+    max_value: 10000
+    icon: mdi:clock-end
+    unit_of_measurement: ms
+    initial_value: 500
+    restore_value: true
+    step: 1
+    on_value:
+      then:
+        - lambda: 'id(my_cover).set_update_delay((uint32_t)x);'
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+
+external_components:
+  - source: github://dvb6666/esphome-components
