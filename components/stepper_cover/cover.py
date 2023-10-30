@@ -28,6 +28,8 @@ CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
 
 async def to_code(config):
     stepper = await cg.get_variable(config[CONF_STEPPER])
-    var = cg.new_Pvariable(config[CONF_ID], stepper, config[CONF_MAX_POSITION], config[CONF_UPDATE_DELAY])
+    var = cg.new_Pvariable(config[CONF_ID], stepper)
+    cg.add(var.set_max_position(config[CONF_MAX_POSITION]))
+    cg.add(var.set_update_delay(config[CONF_UPDATE_DELAY]))
     await cg.register_component(var, config)
     await cover.register_cover(var, config)
