@@ -10,7 +10,7 @@ using namespace esphome::cover;
 
 static const char *const TAG = "stepper.cover";
 
-StepperCover::StepperCover(stepper::Stepper *stepper) : stepper_(stepper) {
+StepperCover::StepperCover(stepper::Stepper *stepper, bool restore_max_position) : stepper_(stepper), restore_max_position_(restore_max_position) {
   this->traits_.set_is_assumed_state(false);
   this->traits_.set_supports_stop(true);
   this->traits_.set_supports_position(true);
@@ -18,30 +18,39 @@ StepperCover::StepperCover(stepper::Stepper *stepper) : stepper_(stepper) {
 }
 
 void StepperCover::setup() {
-  std::string object_id("stepper_cover_" + this->get_object_id());
-  uint32_t hash = fnv1_hash(object_id);
-  ESP_LOGD(TAG, "Restoring data from preferences (object_id='%s', hash=0x%08x)", object_id.c_str(), hash);
-  this->position_pref_ = global_preferences->make_preference<int32_t>(hash);
-  int32_t restored_position = 0;
-  if (!this->position_pref_.load(&restored_position)) {
-    restored_position = 0;
-    ESP_LOGD(TAG, "Position preference not loaded. First init?");
-  } else {
-    ESP_LOGD(TAG, "Restored stepper position: %d", restored_position);
-    if (restored_position != 0) {
-      this->stepper_->report_position(restored_position);
-      this->stepper_->set_target((this->target_position_ = restored_position));
+  if (this->restore_max_position_) {
+    std::string object1_id("stepper_cover_p1_" + this->get_object_id());
+    uint32_t hash1 = fnv1_hash(object1_id);
+    ESP_LOGD(TAG, "Restoring max_position from preferences (object_id='%s', hash=0x%08x)", object1_id.c_str(), hash1);
+    this->max_position_pref_ = global_preferences->make_preference<uint32_t>(hash1);
+    uint32_t restored_max_position = 0;
+    if (this->max_position_pref_.load(&restored_max_position)) {
+      ESP_LOGD(TAG, "Restored max_position: %d", restored_max_position);
+      this->set_max_position(restored_max_position, false);
+    } else {
+      ESP_LOGD(TAG, "Couldn't restore max_position");
     }
+  }
+
+  std::string object2_id("stepper_cover_p2_" + this->get_object_id());
+  uint32_t hash2 = fnv1_hash(object2_id);
+  ESP_LOGD(TAG, "Restoring position from preferences (object_id='%s', hash=0x%08x)", object2_id.c_str(), hash2);
+  this->position_pref_ = global_preferences->make_preference<int32_t>(hash2);
+  int32_t restored_position = 0;
+  if (this->position_pref_.load(&restored_position)) {
+    ESP_LOGD(TAG, "Restored position: %d", restored_position);
+    if (restored_position != 0)
+      this->reset_position(restored_position, false);
   }
   this->current_operation = COVER_OPERATION_IDLE;
   this->update_position();
-  // ESP_LOGCONFIG(TAG, "Setting up stepper cover '%s'. Init pos: %d", this->name_.c_str(), this->stepper_->current_position);
+  this->init_ = true;
 }
 
 void StepperCover::dump_config() {
-  // LOG_COVER("", "Stepper Cover", this);
   ESP_LOGCONFIG(TAG, "Stepper Cover '%s'", this->name_.c_str());
   ESP_LOGCONFIG(TAG, "  Max position: %d", this->max_position_);
+  ESP_LOGCONFIG(TAG, "  Restore max position: %s", this->restore_max_position_ ? "true" : "false");
   ESP_LOGCONFIG(TAG, "  Update delay: %dms", this->update_delay_);
 }
 
@@ -101,10 +110,20 @@ void StepperCover::set_speed(int speed) {
   this->stepper_->set_max_speed(speed);
 }
 
-void StepperCover::set_max_position(uint32_t max_position) {
+void StepperCover::reset_position(int32_t position, bool save) {
+  ESP_LOGD(TAG, "set_position(): %d steps", position);
+  this->stepper_->report_position(position);
+  this->stepper_->set_target((this->target_position_ = position));
+  if (save)
+    this->position_pref_.save(&position);
+}
+
+void StepperCover::set_max_position(uint32_t max_position, bool save) {
   ESP_LOGD(TAG, "set_max_position(): %d steps", max_position);
   this->max_position_ = max_position;
   this->one_persent_ = max_position / 100;
+  if (save && this->restore_max_position_ && this->init_)
+    this->max_position_pref_.save(&max_position);
 }
 
 void StepperCover::set_update_delay(uint32_t update_delay) {
