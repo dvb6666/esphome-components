@@ -41,6 +41,8 @@ void StepperCover::setup() {
     ESP_LOGD(TAG, "Restored position: %d", restored_position);
     if (restored_position != 0)
       this->reset_position(restored_position, false);
+  } else {
+    ESP_LOGD(TAG, "Couldn't restore position");
   }
   this->current_operation = COVER_OPERATION_IDLE;
   this->update_position();
