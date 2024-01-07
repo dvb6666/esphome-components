@@ -21,6 +21,7 @@ class MyHomeIOT_BLEClientService {
 public:
   esp32_ble_tracker::ESPBTUUID service_uuid_;
   esp32_ble_tracker::ESPBTUUID char_uuid_;
+  esp32_ble_tracker::ESPBTUUID descr_uuid_;
   uint16_t start_handle_;
   uint16_t end_handle_;
   uint16_t char_handle_;
@@ -40,6 +41,9 @@ public:
   void set_char_uuid16(uint16_t uuid) { this->char_uuid_ = esp32_ble_tracker::ESPBTUUID::from_uint16(uuid); }
   void set_char_uuid32(uint32_t uuid) { this->char_uuid_ = esp32_ble_tracker::ESPBTUUID::from_uint32(uuid); }
   void set_char_uuid128(uint8_t *uuid) { this->char_uuid_ = esp32_ble_tracker::ESPBTUUID::from_raw(uuid); }
+  void set_descr_uuid16(uint16_t uuid) { this->descr_uuid_ = esp32_ble_tracker::ESPBTUUID::from_uint16(uuid); }
+  void set_descr_uuid32(uint32_t uuid) { this->descr_uuid_ = esp32_ble_tracker::ESPBTUUID::from_uint32(uuid); }
+  void set_descr_uuid128(uint8_t *uuid) { this->descr_uuid_ = esp32_ble_tracker::ESPBTUUID::from_raw(uuid); }
   void set_notify() { this->type = 2; }
   void set_skip_empty() { this->skip_empty_ = true; }
   bool get_skip_empty() { return this->skip_empty_; }
@@ -93,11 +97,13 @@ public:
       ESP_LOGW(TAG, "  No one service defined! Device is undiscovered.");
     else {
       for (int i = 0; i < this->services.size(); i++)
-        ESP_LOGCONFIG(TAG, "  %d) %s Service UUID: %s,  Characteristic UUID: %s", i + 1,
+        ESP_LOGCONFIG(TAG, "  %d) %s Service UUID: %s, Characteristic UUID: %s%s%s", i + 1,
                       this->services[i]->is_notify()  ? "Notify"
                       : this->services[i]->is_write() ? "Write"
                                                       : "Read",
-                      this->services[i]->service_uuid_.to_string().c_str(), this->services[i]->char_uuid_.to_string().c_str());
+                      this->services[i]->service_uuid_.to_string().c_str(), this->services[i]->char_uuid_.to_string().c_str(),
+                      this->services[i]->descr_uuid_.get_uuid().len == 0 ? "" : ", Descriptor UUID: ",
+                      this->services[i]->descr_uuid_.get_uuid().len == 0 ? "" : this->services[i]->descr_uuid_.to_string().c_str());
       LOG_UPDATE_INTERVAL(this);
     }
   }
@@ -174,7 +180,7 @@ public:
         report_error();
         break;
       }
-      ESP_LOGV(TAG, "[%s] CFG_MTU_EVT, MTU (%d)", to_string(this->address_).c_str(), param->cfg_mtu.mtu);
+      ESP_LOGD(TAG, "[%s] CFG_MTU_EVT, MTU (%d)", to_string(this->address_).c_str(), param->cfg_mtu.mtu);
       if (auto status = esp_ble_gattc_search_service(esp_gattc_if, param->cfg_mtu.conn_id, nullptr)) {
         ESP_LOGW(TAG, "[%s] search_service failed, status (%d)", to_string(this->address_).c_str(), status);
         report_error();
@@ -222,6 +228,7 @@ public:
       process_next_service();
       break;
     }
+    case ESP_GATTC_READ_DESCR_EVT:
     case ESP_GATTC_READ_CHAR_EVT: {
       if (param->read.conn_id != this->conn_id_ || param->read.handle != this->services[processing_service]->char_handle_) {
         ESP_LOGD(TAG, "[%s] Received read for unknown handle (%d)", to_string(this->address_).c_str(), param->read.handle);
@@ -330,9 +337,9 @@ protected:
     this->status_clear_warning();
     std::vector<uint8_t> value(data, data + len);
     vec2str(value);
-    ESP_LOGD(TAG, "[%s] Receiving %d bytes for %sservice[%d] (%s): [0x%s]", to_string(this->address_).c_str(), value.size(),
+    ESP_LOGD(TAG, "[%s] Receiving %d bytes for %sservice[%d] (%s): [%s%s]", to_string(this->address_).c_str(), value.size(),
              this->services[service]->is_notify() ? "notify " : "", service + 1, this->services[service]->service_uuid_.to_string().c_str(),
-             temp_str);
+             strlen(temp_str) > 0 ? "0x" : "", temp_str);
     this->value_callback_.call(value, service + 1, this->stop_processing, *this);
     if (this->stop_processing) {
       ESP_LOGD(TAG, "[%s] Stop processing after service[%d] (%s)", to_string(this->address_).c_str(), service + 1,
@@ -436,6 +443,37 @@ protected:
                  this->services[i]->char_uuid_.to_string().c_str());
         this->services[i]->char_handle_ = result.char_handle;
 
+        if (this->services[i]->descr_uuid_.get_uuid().len != 0) {
+          bool descr_found = false;
+          for (uint16_t offset_descr = 0; !descr_found; offset_descr++) {
+            esp_gattc_descr_elem_t result_descr;
+            uint16_t count_descr = 1;
+            auto status2 = esp_ble_gattc_get_all_descr(ble_host_->gattc_if, this->conn_id_, this->services[i]->char_handle_, &result_descr,
+                                                       &count_descr, offset_descr);
+            if (status2 != ESP_GATT_OK) {
+              if (status2 == ESP_GATT_INVALID_OFFSET || status2 == ESP_GATT_NOT_FOUND)
+                break;
+              ESP_LOGW(TAG, "[%s] get_all_descr error, status (%d)", to_string(this->address_).c_str(), status2);
+              report_error();
+              return true;
+            }
+            if (count == 0)
+              break;
+            if (this->services[i]->descr_uuid_ == esp32_ble_tracker::ESPBTUUID::from_uuid(result_descr.uuid)) {
+              ESP_LOGD(TAG, "[%s] SEARCH_CMPL_EVT for char (%s) found descr (%s)", to_string(this->address_).c_str(),
+                       this->services[i]->char_uuid_.to_string().c_str(), this->services[i]->descr_uuid_.to_string().c_str());
+              this->services[i]->char_handle_ = result_descr.handle;
+              descr_found = true;
+            }
+          }
+          if (!descr_found) {
+            ESP_LOGE(TAG, "[%s] SEARCH_CMPL_EVT descr (%s) not found", to_string(this->address_).c_str(),
+                     this->services[i]->descr_uuid_.to_string().c_str());
+            report_error();
+            return true;
+          }
+        }
+
         if (this->services[i]->is_notify()) {
           auto status = esp_ble_gattc_register_for_notify(ble_host_->gattc_if, this->remote_bda_, this->services[i]->char_handle_);
           if (status != ESP_GATT_OK) {
@@ -469,6 +507,7 @@ protected:
           }
 
         } else {
+          // TODO use "esp_ble_gattc_read_char_descr" for descriptors?
           auto status =
               esp_ble_gattc_read_char(ble_host_->gattc_if, this->conn_id_, this->services[i]->char_handle_, ESP_GATT_AUTH_REQ_NONE);
           if (status != ESP_GATT_OK) {

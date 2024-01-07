@@ -25,6 +25,7 @@ MULTI_CONF = True
 CONF_BLE_HOST = "ble_host"
 CONF_ON_ERROR = "on_error"
 CONF_CHARACTERISTIC_UUID = "characteristic_uuid"
+CONF_DESCRIPTOR_UUID = "descriptor_uuid"
 CONF_NOTIFY = "notify"
 CONF_SKIP_EMPTY = "skip_empty"
 
@@ -65,6 +66,7 @@ CONFIG_SCHEMA = (
                     cv.GenerateID(): cv.declare_id(MyHomeIOT_BLEClientService),
                     cv.Required(CONF_SERVICE_UUID): esp32_ble_tracker.bt_uuid,
                     cv.Required(CONF_CHARACTERISTIC_UUID): esp32_ble_tracker.bt_uuid,
+                    cv.Optional(CONF_DESCRIPTOR_UUID): esp32_ble_tracker.bt_uuid,
                     cv.Optional(CONF_NOTIFY, default=False): cv.boolean,
                     cv.Optional(CONF_DELAY): cv.templatable(cv.positive_time_period_milliseconds),
                     cv.Optional(CONF_SKIP_EMPTY, default=False): cv.boolean,
@@ -130,6 +132,15 @@ async def to_code(config):
         elif len(service[CONF_CHARACTERISTIC_UUID]) == len(esp32_ble_tracker.bt_uuid128_format):
           uuid128 = esp32_ble_tracker.as_reversed_hex_array(service[CONF_CHARACTERISTIC_UUID]) if reversed else esp32_ble_tracker.as_hex_array(service[CONF_CHARACTERISTIC_UUID])
           cg.add(srv.set_char_uuid128(uuid128))
+
+        if uuid := service.get(CONF_DESCRIPTOR_UUID):
+          if len(uuid) == len(esp32_ble_tracker.bt_uuid16_format):
+            cg.add(srv.set_descr_uuid16(esp32_ble_tracker.as_hex(uuid)))
+          elif len(uuid) == len(esp32_ble_tracker.bt_uuid32_format):
+            cg.add(srv.set_descr_uuid32(esp32_ble_tracker.as_hex(uuid)))
+          elif len(uuid) == len(esp32_ble_tracker.bt_uuid128_format):
+            uuid128 = esp32_ble_tracker.as_reversed_hex_array(uuid) if reversed else esp32_ble_tracker.as_hex_array(uuid)
+            cg.add(srv.set_descr_uuid128(uuid128))
 
         if value := service.get(CONF_VALUE):
           if cg.is_template(value):
