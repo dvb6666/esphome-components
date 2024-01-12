@@ -11,7 +11,7 @@ namespace stepper_cover_ {
 
 class StepperCover : public cover::Cover, public Component {
 public:
-  StepperCover(stepper::Stepper *stepper, bool restore_max_position);
+  StepperCover(stepper::Stepper *stepper, bool restore_max_position, bool has_tilt_action, bool has_tilt_lambda);
 
   void setup() override;
   void dump_config() override;
@@ -20,6 +20,8 @@ public:
   void reset_position(int32_t position, bool save = true);
   void set_max_position(uint32_t max_position, bool save = true);
   void set_update_delay(uint32_t update_delay);
+  Trigger<float> *get_tilt_trigger() const { return this->tilt_trigger_; }
+  void set_tilt_lambda(std::function<optional<float>()> &&tilt_f) { this->tilt_f_ = tilt_f; }
 
 protected:
   void control(const cover::CoverCall &call) override;
@@ -35,6 +37,8 @@ private:
   unsigned long next_update_{0};
   ESPPreferenceObject position_pref_{nullptr}, max_position_pref_{nullptr};
   cover::CoverTraits traits_{};
+  Trigger<float> *tilt_trigger_;
+  optional<std::function<optional<float>()>> tilt_f_;
 };
 
 } // namespace stepper_cover_

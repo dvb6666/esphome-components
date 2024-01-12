@@ -10,11 +10,13 @@ using namespace esphome::cover;
 
 static const char *const TAG = "stepper.cover";
 
-StepperCover::StepperCover(stepper::Stepper *stepper, bool restore_max_position) : stepper_(stepper), restore_max_position_(restore_max_position) {
+StepperCover::StepperCover(stepper::Stepper *stepper, bool restore_max_position, bool has_tilt_action, bool has_tilt_lambda)
+ : stepper_(stepper), restore_max_position_(restore_max_position) {
   this->traits_.set_is_assumed_state(false);
   this->traits_.set_supports_stop(true);
   this->traits_.set_supports_position(true);
-  this->traits_.set_supports_tilt(false);
+  this->traits_.set_supports_tilt(has_tilt_action || has_tilt_lambda);
+  this->tilt_trigger_ = has_tilt_action ? new Trigger<float>() : NULL;
 }
 
 void StepperCover::setup() {
@@ -65,7 +67,8 @@ void StepperCover::control(const CoverCall &call) {
     ESP_LOGD(TAG, "control(): stop (current stepper pos %d)", this->stepper_->current_position);
     this->stepper_->set_target((this->target_position_ = this->stepper_->current_position));
 
-  } else if (call.get_position().has_value()) {
+  }
+  if (call.get_position().has_value()) {
     auto pos = *call.get_position();
     this->target_position_ = (int32_t)round((COVER_OPEN - pos) * this->max_position_);
     // if (!this->inverted_)
@@ -79,6 +82,11 @@ void StepperCover::control(const CoverCall &call) {
              this->stepper_->current_position);
     this->stepper_->set_target(this->target_position_);
     this->need_update_ = true;
+  }
+  if (call.get_tilt().has_value()) {
+    auto tilt = *call.get_tilt();
+    this->tilt_trigger_->trigger(tilt);
+    this->tilt = tilt;
   }
 }
 
@@ -97,9 +105,21 @@ void StepperCover::loop() {
 
     // ESP_LOGD(TAG, "loop(): current stepper pos %d", this->stepper_->current_position);
     this->update_position();
+    return;
   }
-
-  else if (this->need_update_) {
+  if (this->tilt_f_.has_value()) {
+    auto s = (*this->tilt_f_)();
+    if (s.has_value()) {
+      auto tilt = clamp(*s, 0.0f, 1.0f);
+      if (tilt != this->tilt) {
+        ESP_LOGD(TAG, "loop(): tilt changed from %f to %f", this->tilt, tilt);
+        this->tilt = tilt;
+        this->need_update_ = true;
+        return;
+      }
+    }
+  }
+  if (this->need_update_) {
     this->need_update_ = false;
     this->publish_state();
   }

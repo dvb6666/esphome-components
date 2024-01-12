@@ -7,6 +7,9 @@ esp32:
   framework:
     type: arduino
 
+preferences:
+  flash_write_interval: 300s
+
 # Enable logging
 logger:
 
@@ -27,8 +30,20 @@ cover:
     id: my_cover
     name: Cover
     stepper: my_stepper # шаговик, которым управляем
+    restore_max_position: true # будут сохранять в памяти значение "длины шторы", которое будет передаваться в set_max_position()
     max_position: 2000 # "длина" шторы в шагах
     update_delay: 300ms # задержка между публикациями состояния до дефолту (меняется number-ом "Update Delay"; см.ниже)
+    # если определены tilt_action или tilt_lambda, в контроле пояится "бегунок" для tilt
+    tilt_action:
+      - lambda: 'ESP_LOGD("stepper_cover", "tilt_action: %f", tilt);'
+    tilt_lambda: |-
+      static bool init = false;
+      if (!init) {
+        ESP_LOGD("stepper_cover", "tilt_lambda: init");
+        init = true;
+        return 0.3f;
+      }
+      return {};
 
 stepper:
   # - platform: a4988
@@ -88,6 +103,25 @@ button:
   - platform: restart
     name: Restart
     entity_category: diagnostic
+  - platform: factory_reset
+    name: Factory Reset
+    entity_category: diagnostic
+  - platform: template
+    # тестовое действие по изменению позиции
+    name: Set Pos 60 Tilt 80
+    on_press:
+      then:
+        - cover.control:
+            id: my_cover
+            position: 60%
+            tilt: 80%
+  - platform: template
+    # тестовое действие по изменению "длины шторы" (макс.позиции)
+    name: Set Max Pos 3000
+    on_press:
+      then:
+        - lambda: 'id(my_cover).set_max_position(3000);'
 
 external_components:
   - source: github://dvb6666/esphome-components
+    refresh: 1sec
