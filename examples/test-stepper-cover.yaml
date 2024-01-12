@@ -41,9 +41,9 @@ cover:
       if (!init) {
         ESP_LOGD("stepper_cover", "tilt_lambda: init");
         init = true;
-        return 0.3f;
+        return 0.3f; // если отдаём конкертное значение (тип float), то будет меняться значение
       }
-      return {};
+      return {}; // если отдаём пустоту, ничего происходить не будет
 
 stepper:
   # - platform: a4988
