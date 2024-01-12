@@ -14,6 +14,7 @@ DEPENDENCIES = ["stepper"]
 CONF_STEPPER = "stepper"
 CONF_MAX_POSITION = "max_position"
 CONF_RESTORE_MAX_POSITION = "restore_max_position"
+CONF_RESTORE_TILT = "restore_tilt"
 CONF_UPDATE_DELAY = "update_delay"
 
 stepper_cover_ns = cg.esphome_ns.namespace("stepper_cover_")
@@ -25,6 +26,7 @@ CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
         cv.Required(CONF_STEPPER): cv.use_id(stepper.Stepper),
         cv.Optional(CONF_MAX_POSITION, default=1000): cv.uint32_t,
         cv.Optional(CONF_RESTORE_MAX_POSITION, default=False): cv.boolean,
+        cv.Optional(CONF_RESTORE_TILT, default=True): cv.boolean,
         cv.Optional(CONF_UPDATE_DELAY, default="500ms"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_TILT_ACTION): automation.validate_automation(single=True),
         cv.Optional(CONF_TILT_LAMBDA): cv.returning_lambda,
@@ -36,7 +38,7 @@ async def to_code(config):
     stepper = await cg.get_variable(config[CONF_STEPPER])
     has_tilt_action = CONF_TILT_ACTION in config
     has_tilt_lambda = CONF_TILT_LAMBDA in config
-    var = cg.new_Pvariable(config[CONF_ID], stepper, config[CONF_RESTORE_MAX_POSITION], has_tilt_action, has_tilt_lambda)
+    var = cg.new_Pvariable(config[CONF_ID], stepper, config[CONF_RESTORE_MAX_POSITION], has_tilt_action, has_tilt_lambda, config[CONF_RESTORE_TILT])
     cg.add(var.set_max_position(config[CONF_MAX_POSITION], False))
     cg.add(var.set_update_delay(config[CONF_UPDATE_DELAY]))
     if has_tilt_action:
