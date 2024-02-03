@@ -5,7 +5,7 @@
 **/lib/
 **/platformio.ini
 **/partitions.csv
-
+**/__pycache__/
 *.pyc
 
 /secrets.yaml
