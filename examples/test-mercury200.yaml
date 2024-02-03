@@ -1,0 +1,79 @@
+esphome:
+  name: test-mercury200
+  friendly_name: test-mercury200
+
+esp8266:
+  board: nodemcuv2
+# esp32:
+#   board: esp32dev
+
+# Enable logging
+logger:
+  # baud_rate: 0  # when uart0 on gpio1/gpio3 is using
+  # level: verbose
+
+# Enable Home Assistant API
+api:
+
+ota:
+  password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+uart:
+  tx_pin: D5
+  rx_pin: D6
+  # tx_pin: 1 # for Esp01
+  # rx_pin: 3
+  # tx_pin: 17 # for Esp32
+  # rx_pin: 16
+  id: uart_for_mercury
+  baud_rate: 9600
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+  # debug:
+  #   direction: BOTH
+  #   sequence:
+  #      - lambda: UARTDebug::log_hex(direction, bytes, ';');
+
+mercury200:
+  id: mercury_id
+  address: 1527317 # or 527317
+  uart_id: uart_for_mercury
+  # dir_pin: 5
+  all_commands: true
+  startup_delay: 20s
+  voltage:
+    name: Voltage
+  current:
+    name: Current
+  power:
+    name: Power
+  energy1:
+    name: Energy1
+  energy2:
+    name: Energy2
+  battery_voltage:
+    name: Battery
+  error:
+    name: Error
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+  - platform: template
+    name: Update
+    entity_category: diagnostic
+    on_press:
+      - lambda: "id(mercury_id).update();"
+
+time:
+  - platform: homeassistant
+
+external_components:
+  - source: github://dvb6666/esphome-components
+    refresh: 1sec

@@ -22,6 +22,8 @@ public:
   static uint8_t bcd(const uint8_t data) { return (data & 0x0f) + 10 * ((data >> 4) & 0x0f); };
   static uint16_t bcd16(const uint8_t *data, uint8_t len = 2);
   static uint32_t bcd32(const uint8_t *data, uint8_t len = 4);
+  static uint16_t uint16(const uint8_t *data, uint8_t len = 2);
+  static uint32_t uint32(const uint8_t *data, uint8_t len = 4);
   static uint16_t htons(uint16_t a) { return ((a >> 8) & 0xff) | ((a & 0xff) << 8); };
   static uint32_t htonl(uint32_t a) { return ((a & 0xff000000) >> 24) | ((a & 0xff0000) >> 8) | ((a & 0xff00) << 8) | ((a & 0xff) << 24); };
   static time_t timestamp(const uint8_t *data);
@@ -33,14 +35,14 @@ protected:
 class GetSerialNumberCommand : public Command {
 public:
   GetSerialNumberCommand(std::function<void(uint32_t)> on_value) : Command(0x2F, 4), on_value_(on_value) {}
-  void process(const uint8_t *data) override { on_value_(htonl(*(uint32_t *)data)); }
+  void process(const uint8_t *data) override { on_value_(uint32(data)); }
   std::function<void(uint32_t addr)> on_value_;
 };
 
 class GetVersionCommand : public Command {
 public:
   GetVersionCommand(std::function<void(uint16_t, uint32_t)> on_value) : Command(0x28, 6), on_value_(on_value) {}
-  void process(const uint8_t *data) override { on_value_(htons(*(uint16_t *)data), htonl(*(uint32_t *)(data + 2))); }
+  void process(const uint8_t *data) override { on_value_(uint16(data), uint32(data + 2)); }
   std::function<void(uint16_t ver, uint32_t data_ver)> on_value_;
 };
 

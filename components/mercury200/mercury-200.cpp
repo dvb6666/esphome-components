@@ -24,7 +24,7 @@ void Mercury200::setup() {
   if (this->all_commands_) {
     this->commands_.push_back(new GetSerialNumberCommand([this](uint32_t addr) { ESP_LOGD(TAG, "Serial number: %d", addr); }));
     this->commands_.push_back(new GetVersionCommand(
-        [this](uint16_t ver, uint32_t data_ver) { ESP_LOGD(TAG, "Version: %d.%d (%06x)", ver & 0xff, (ver >> 8) & 0xff, data_ver); }));
+        [this](uint16_t ver, uint32_t data_ver) { ESP_LOGD(TAG, "Version: %d.%d (%06x)", (ver >> 8) & 0xff, ver & 0xff, data_ver); }));
     this->commands_.push_back(new GetDateFabricCommand(
         [this](uint8_t day, uint8_t month, uint16_t year) { ESP_LOGD(TAG, "DateFabric: %d.%d.%d", day, month, year); }));
     this->commands_.push_back(new GetTimeCommand([this](uint32_t tm) { ESP_LOGD(TAG, "Time: %d", tm); }));
@@ -100,7 +100,11 @@ void Mercury200::loop() {
   switch (phase) {
 
   case 1: { // preparing command data
-    *((uint32_t *)&this->tx_buffer_[0]) = Command::htonl(this->address_ % 1000000);
+    uint32_t adr = this->address_ % 1000000;
+    this->tx_buffer_[0] = (uint8_t)((adr >> 24) & 0xff);
+    this->tx_buffer_[1] = (uint8_t)((adr >> 16) & 0xff);
+    this->tx_buffer_[2] = (uint8_t)((adr >> 8) & 0xff);
+    this->tx_buffer_[3] = (uint8_t)(adr & 0xff);
     this->tx_buffer_[4] = this->commands_[cmd_idx]->code();
     uint16_t crc = crc16(this->tx_buffer_, 5);
     this->tx_buffer_[5] = crc & 0xff;
@@ -212,6 +216,26 @@ uint32_t Command::bcd32(const uint8_t *data, uint8_t len) {
     if (i > 0)
       sum *= 100;
     sum += bcd(data[i]);
+  }
+  return sum;
+}
+
+uint16_t Command::uint16(const uint8_t *data, uint8_t len) {
+  uint16_t sum = 0;
+  for (uint8_t i = 0; i < len; i++) {
+    if (i > 0)
+      sum <<= 8;
+    sum += data[i];
+  }
+  return sum;
+}
+
+uint32_t Command::uint32(const uint8_t *data, uint8_t len) {
+  uint32_t sum = 0;
+  for (uint8_t i = 0; i < len; i++) {
+    if (i > 0)
+      sum <<= 8;
+    sum += data[i];
   }
   return sum;
 }
