@@ -235,17 +235,17 @@ public:
       (new Automation<std::string, size_t>(new select::SelectStateTrigger(alert_select[i])))
           ->add_actions({new LambdaAction<std::string, size_t>([=](std::string x, size_t sz) -> void { ble_client[i]->force_update(); })});
 
-      (new Automation<int32_t, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+      (new Automation<int, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
            new myhomeiot_ble_client2::MyHomeIOT_BLEClientConnectTrigger(ble_client[i])))
-          ->add_actions({new LambdaAction<int32_t, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
-              [=](int32_t rssi, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
+          ->add_actions({new LambdaAction<int, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+              [=](int rssi, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
                 rssi_sensor[i]->publish_state(rssi);
               })});
 
-      (new Automation<std::vector<uint8_t>, int32_t, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+      (new Automation<std::vector<uint8_t>, int, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
            new myhomeiot_ble_client2::MyHomeIOT_BLEClientValueTrigger(ble_client[i])))
-          ->add_actions({new LambdaAction<std::vector<uint8_t>, int32_t, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
-              [=](std::vector<uint8_t> x, int32_t service, bool &stop_processing,
+          ->add_actions({new LambdaAction<std::vector<uint8_t>, int, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+              [=](std::vector<uint8_t> x, int service, bool &stop_processing,
                   const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
                 if (service == 1) {
                   batt_sensor[i]->publish_state(x[0]);

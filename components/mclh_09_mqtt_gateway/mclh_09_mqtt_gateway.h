@@ -147,20 +147,20 @@ public:
     this->ble_client_->add_service(serv_alert);
 
     // автоматизации
-    (new Automation<int32_t, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+    (new Automation<int, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
          new myhomeiot_ble_client2::MyHomeIOT_BLEClientConnectTrigger(this->ble_client_)))
-        ->add_actions({new LambdaAction<int32_t, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
-            [=](int32_t rssi, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
+        ->add_actions({new LambdaAction<int, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+            [=](int rssi, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
               this->last_online = millis();
               this->online = true;
               this->rssi = rssi;
               this->next_time = 0;
             })});
 
-    (new Automation<std::vector<uint8_t>, int32_t, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+    (new Automation<std::vector<uint8_t>, int, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
          new myhomeiot_ble_client2::MyHomeIOT_BLEClientValueTrigger(this->ble_client_)))
-        ->add_actions({new LambdaAction<std::vector<uint8_t>, int32_t, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
-            [=](std::vector<uint8_t> x, int32_t service, bool &stop_processing,
+        ->add_actions({new LambdaAction<std::vector<uint8_t>, int, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+            [=](std::vector<uint8_t> x, int service, bool &stop_processing,
                 const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
               if (service == 1) {
                 this->batt = x[0];

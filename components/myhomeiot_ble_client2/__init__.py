@@ -43,11 +43,11 @@ BoolRef = cg.bool_.operator("ref")
 # Triggers
 MyHomeIOT_BLEClientConnectTrigger = myhomeiot_ble_client2_ns.class_(
     "MyHomeIOT_BLEClientConnectTrigger",
-    automation.Trigger.template(cg.int32),
+    automation.Trigger.template(cg.int_),
 )
 MyHomeIOT_BLEClientValueTrigger = myhomeiot_ble_client2_ns.class_(
     "MyHomeIOT_BLEClientValueTrigger",
-    automation.Trigger.template(cg.std_vector.template(cg.uint8), cg.int32),
+    automation.Trigger.template(cg.std_vector.template(cg.uint8), cg.int_),
 )
 MyHomeIOT_BLEClientErrorTrigger = myhomeiot_ble_client2_ns.class_(
     "MyHomeIOT_BLEClientErrorTrigger",
@@ -165,10 +165,10 @@ async def to_code(config):
 
     for conf in config.get(CONF_ON_CONNECT, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [(cg.int32, "rssi"), (MyHomeIOT_BLEClient2ConstRef, "xthis")], conf)
+        await automation.build_automation(trigger, [(cg.int_, "rssi"), (MyHomeIOT_BLEClient2ConstRef, "xthis")], conf)
     for conf in config.get(CONF_ON_VALUE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [(cg.std_vector.template(cg.uint8), "x"), (cg.int32, "service"), (BoolRef, "stop_processing"), (MyHomeIOT_BLEClient2ConstRef, "xthis")], conf)
+        await automation.build_automation(trigger, [(cg.std_vector.template(cg.uint8), "x"), (cg.int_, "service"), (BoolRef, "stop_processing"), (MyHomeIOT_BLEClient2ConstRef, "xthis")], conf)
     for conf in config.get(CONF_ON_ERROR, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(cg.uint32, "error_count"), (MyHomeIOT_BLEClient2ConstRef, "xthis")], conf)
