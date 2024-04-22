@@ -1,0 +1,54 @@
+esphome:
+  name: test-gpio-viewer
+  friendly_name: test-gpio-viewer
+  libraries:
+    - WiFi
+    - FS
+    - WebServer
+    - https://github.com/dvarrel/AsyncTCP.git
+    - https://github.com/me-no-dev/ESPAsyncWebServer.git
+    - https://github.com/thelastoutpostworkshop/gpio_viewer.git
+
+external_components:
+  - source: github://dvb6666/esphome-components
+    refresh: 1sec
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+api:
+
+ota:
+  password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+gpio_viewer:
+  port: 82 # default 8080
+  sampling_interval: 75 # default 100
+
+# Test GPIO sensor
+binary_sensor:
+  - platform: gpio
+    name: "D15"
+    pin:
+      number: 15
+      mode:
+        input: true
+        pullup: true
+
+switch:
+  - platform: gpio
+    pin: 2
+    name: LED
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
