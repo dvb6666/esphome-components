@@ -28,6 +28,7 @@ mclh_09_gateway:
   id: my_mclh_09
   interval: 15min
   error_counting: true
+  raw_soil: false # set to 'true' for raw soil values (without interpolate)
   mac_address:
     - !secret mclh09_001_mac
     - !secret mclh09_002_mac

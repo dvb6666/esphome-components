@@ -102,6 +102,9 @@ For every MCLH-09 device it will create sensors: battery level, temperature, soi
 esp32_ble_tracker:
 myhomeiot_ble_host:
 mclh_09_gateway:
+  interval: 10min
+  error_counting: true
+  raw_soil: false
   mac_address:
     - "00:00:00:11:11:11"
     - "00:00:00:22:22:22"

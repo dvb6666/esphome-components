@@ -37,6 +37,7 @@ mclh_09_mqtt_gateway:
   id: mclh_09_gateway
   interval: 10min
   error_counting: true
+  raw_soil: false # set to 'true' for raw soil values (without interpolate)
   topic_prefix: "esphome/devices/mclh09-sensors"
   mac_address:
     - !secret mclh09_001_mac

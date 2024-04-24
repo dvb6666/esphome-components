@@ -14,6 +14,7 @@ DEPENDENCIES = ["myhomeiot_ble_host"]
 
 CONF_BLE_HOST = "ble_host"
 CONF_ERROR_COUNTING = "error_counting"
+CONF_RAW_SOIL = "raw_soil"
 
 mclh_09_gateway_ns = cg.esphome_ns.namespace("mclh_09_gateway")
 Mclh09Gateway = mclh_09_gateway_ns.class_(
@@ -30,6 +31,7 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_MAC_ADDRESS): cv.ensure_list(cv.mac_address),
             cv.Optional(CONF_INTERVAL, default="60min"): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_ERROR_COUNTING, default=False): cv.boolean,
+            cv.Optional(CONF_RAW_SOIL, default=False): cv.boolean,
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -47,7 +49,7 @@ async def to_code(config):
     addr_list = []
     for it in config[CONF_MAC_ADDRESS]:
       addr_list.append(it.as_hex)
-    var = cg.new_Pvariable(config[CONF_ID], addr_list, config[CONF_INTERVAL], config[CONF_ERROR_COUNTING])
+    var = cg.new_Pvariable(config[CONF_ID], addr_list, config[CONF_INTERVAL], config[CONF_ERROR_COUNTING], config[CONF_RAW_SOIL])
     ble_host = await cg.get_variable(config[CONF_BLE_HOST])
     cg.add(var.set_ble_host(ble_host))
     await cg.register_component(var, config)

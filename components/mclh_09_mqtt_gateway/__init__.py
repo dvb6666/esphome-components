@@ -16,6 +16,7 @@ DEPENDENCIES = ["myhomeiot_ble_host", "mqtt"]
 
 CONF_BLE_HOST = "ble_host"
 CONF_ERROR_COUNTING = "error_counting"
+CONF_RAW_SOIL = "raw_soil"
 
 mclh_09_gateway_ns = cg.esphome_ns.namespace("mclh_09_mqtt_gateway")
 Mclh09Gateway = mclh_09_gateway_ns.class_(
@@ -34,6 +35,7 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_TOPIC_PREFIX): cv.publish_topic,
             cv.Optional(CONF_INTERVAL, default="60min"): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_ERROR_COUNTING, default=False): cv.boolean,
+            cv.Optional(CONF_RAW_SOIL, default=False): cv.boolean,
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -53,7 +55,7 @@ async def to_code(config):
       addr_list.append(it.as_hex)
     mqtt_client = await cg.get_variable(config[CONF_MQTT_ID])
     ble_host = await cg.get_variable(config[CONF_BLE_HOST])
-    var = cg.new_Pvariable(config[CONF_ID], mqtt_client, ble_host, addr_list, config[CONF_TOPIC_PREFIX], config[CONF_INTERVAL], config[CONF_ERROR_COUNTING])
+    var = cg.new_Pvariable(config[CONF_ID], mqtt_client, ble_host, addr_list, config[CONF_TOPIC_PREFIX], config[CONF_INTERVAL], config[CONF_ERROR_COUNTING], config[CONF_RAW_SOIL])
 #    cg.add(var.set_ble_host(ble_host))
     await cg.register_component(var, config)
 

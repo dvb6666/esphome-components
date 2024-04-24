@@ -167,7 +167,8 @@ public:
               } else if (service == 2) {
                 this->temp = interpolate((float)(*(uint16_t *)&x[0]), temp_input, temp_output);
                 this->humi = (float)(*(uint16_t *)&x[2]) / 13.0;
-                this->soil = interpolate((float)(*(uint16_t *)&x[4]), soil_input, soil_output, true);
+                float raw_soil = (float)(*(uint16_t *)&x[4]);
+                this->soil = SOIL.unit == NULL ? raw_soil : interpolate(raw_soil, soil_input, soil_output, true);
                 this->lumi = interpolate((float)(*(uint16_t *)&x[6]), lumi_input, lumi_output);
                 this->new_state = true;
                 this->next_time = 0;
@@ -484,15 +485,17 @@ class Mclh09MqttGateway : public Component {
 public:
   Mclh09MqttGateway(mqtt::MQTTClientComponent *mqtt_client, myhomeiot_ble_host::MyHomeIOT_BLEHost *ble_host,
                     const std::vector<uint64_t> &mac_addresses, const std::string &topic_prefix, uint32_t update_interval = 3600000,
-                    bool error_counting = false) {
+                    bool error_counting = false, bool raw_soil = false) {
     this->mqtt_client_ = mqtt_client;
     this->ble_host_ = ble_host;
     this->topic_prefix_ = topic_prefix;
     this->update_interval_ = update_interval;
 
+    if (raw_soil)
+      SOIL.unit = SOIL.dev_class = NULL;
     mclh09_sensors = {&BATT, &TEMP, &LUMI, &SOIL, &HUMI, &RSSI};
     if (error_counting)
-      mclh09_sensors.push_back(&ERRORS);
+mclh09_sensors.push_back(&ERRORS);
 
     (new Automation<>(new mqtt::MQTTConnectTrigger(this->mqtt_client_)))->add_actions({new LambdaAction<>([=]() -> void {
       ESP_LOGD(TAG, "Connected to MQTT");

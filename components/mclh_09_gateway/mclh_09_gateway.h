@@ -47,7 +47,7 @@ private:
 class Mclh09Gateway : public Component {
 
 public:
-  Mclh09Gateway(const std::vector<uint64_t> &mac_addresses, uint32_t update_interval = 3600000, bool error_counting = false) {
+  Mclh09Gateway(const std::vector<uint64_t> &mac_addresses, uint32_t update_interval = 3600000, bool error_counting = false, bool raw_soil = false) {
     mac_addresses_ = mac_addresses;
     device_count = mac_addresses_.size();
 
@@ -119,9 +119,11 @@ public:
       snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "soil");
       soil_sensor[i]->set_object_id(strdup(buffer));
       soil_sensor[i]->set_disabled_by_default(false);
-      soil_sensor[i]->set_device_class("humidity");
       soil_sensor[i]->set_state_class(sensor::STATE_CLASS_MEASUREMENT);
-      soil_sensor[i]->set_unit_of_measurement("%");
+      if (!raw_soil) {
+        soil_sensor[i]->set_device_class("moisture");
+        soil_sensor[i]->set_unit_of_measurement("%");
+      }
       soil_sensor[i]->set_accuracy_decimals(0);
       soil_sensor[i]->set_force_update(false);
       // soil_sensor[i]->set_filters({new sensor::CalibrateLinearFilter(0.17831784356979544f, -165.0581022116415f),
@@ -256,7 +258,8 @@ public:
                   // lumi_sensor[i]->publish_state((float)(*(uint16_t *)&x[6]));
                   temp_sensor[i]->publish_state(interpolate((float)(*(uint16_t *)&x[0]), temp_input, temp_output));
                   humi_sensor[i]->publish_state((float)(*(uint16_t *)&x[2]) / 13.0);
-                  soil_sensor[i]->publish_state(interpolate((float)(*(uint16_t *)&x[4]), soil_input, soil_output, true));
+                  float soil = (float)(*(uint16_t *)&x[4]);
+                  soil_sensor[i]->publish_state(raw_soil? soil : interpolate(soil, soil_input, soil_output, true));
                   lumi_sensor[i]->publish_state(interpolate((float)(*(uint16_t *)&x[6]), lumi_input, lumi_output));
                 }
               })});
