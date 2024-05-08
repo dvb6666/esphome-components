@@ -306,12 +306,18 @@ private:
   sensor::Sensor **batt_sensor, **temp_sensor, **lumi_sensor, **soil_sensor, **humi_sensor, **rssi_sensor, **error_sensor;
   AlertSelect **alert_select;
   size_t *alert_value;
-  std::vector<float> temp_input{1035, 909, 668, 424, 368, 273, 159, 0};
-  std::vector<float> temp_output{68.8, 49.8, 24.3, 6.4, 1.0, -5.5, -20.5, -41.0};
-  std::vector<float> soil_input{1280, 1254, 1249, 1202, 1104, 944, 900};
-  std::vector<float> soil_output{66.0, 60.0, 58.0, 54.0, 22.0, 2.0, 0.0};
-  std::vector<float> lumi_input{911, 764, 741, 706, 645, 545, 196, 117, 24, 17, 0};
-  std::vector<float> lumi_output{175300.0, 45400.0, 32100.0, 20300.0, 14760.0, 7600.0, 1200.0, 444.0, 29.0, 17.0, 0.0};
+  //std::vector<float> temp_input{1035, 909, 668, 424, 368, 273, 159, 0};
+  //std::vector<float> temp_output{68.8, 49.8, 24.3, 6.4, 1.0, -5.5, -20.5, -41.0};
+  std::vector<float> temp_input{1035, 909, 648, 424, 368, 273, 159, 0};
+  std::vector<float> temp_output{68.8, 49.8, 23.7, 6.4, 1.0, -5.5, -20.5, -41.0};
+  //std::vector<float> soil_input{1280, 1254, 1249, 1202, 1104, 944, 900};
+  //std::vector<float> soil_output{66.0, 60.0, 58.0, 54.0, 22.0, 2.0, 0.0};
+  std::vector<float> soil_input{1280, 1216, 1146, 1076, 1006, 936, 900};
+  std::vector<float> soil_output{100.0, 90.28, 70.28, 50.28, 30.28, 10.28, 0.0};
+  //std::vector<float> lumi_input{911, 764, 741, 706, 645, 545, 196, 117, 24, 17, 0};
+  //std::vector<float> lumi_output{175300.0, 45400.0, 32100.0, 20300.0, 14760.0, 7600.0, 1200.0, 444.0, 29.0, 17.0, 0.0};
+  std::vector<float> lumi_input{1453, 764, 741, 706, 645, 545, 196, 117, 24, 17, 0};
+  std::vector<float> lumi_output{26700.0, 20700.0, 15700.0, 11700.0, 7700.0, 4000.0, 1500.0, 444.0, 29.0, 17.0, 0.0};
 
   float limit_value(float value, float min_value, float max_value) {
     return value < min_value ? min_value : value > max_value ? max_value : value;
