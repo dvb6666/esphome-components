@@ -1,0 +1,80 @@
+esphome:
+  name: test-nartis100
+  friendly_name: test-nartis100
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  # baud_rate: 0  # when uart0 on gpio1/gpio3 is using
+  # level: verbose
+
+# Enable Home Assistant API
+api:
+
+ota:
+  password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+uart:
+  rx_pin: 16
+  tx_pin: 17
+  id: uart_for_nartis
+  baud_rate: 9600
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+  # debug:
+  #   direction: BOTH
+  #   sequence:
+  #      - lambda: UARTDebug::log_hex(direction, bytes, ' ');
+
+nartis100:
+  id: nartis_id
+  password: "111"
+  uart_id: uart_for_nartis
+  # dir_pin: 5 # for rs485 modules without auto direction control
+  startup_delay: 10s
+  serial_number:
+    name: SerialNumber
+  release_date: 
+    name: ReleaseDate
+  voltage:
+    name: Voltage
+  current:
+    name: Current
+  power:
+    name: Power
+  energy1:
+    name: Energy1
+  energy2:
+    name: Energy2
+  energy3:
+    name: Energy3
+  energy4:
+    name: Energy4
+  error:
+    name: Error
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+  - platform: template
+    name: Update
+    entity_category: diagnostic
+    on_press:
+      - lambda: "id(nartis_id).update();"
+
+time:
+  - platform: homeassistant
+
+external_components:
+  - source: github://dvb6666/esphome-components
+    refresh: 1sec
