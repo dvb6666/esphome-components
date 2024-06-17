@@ -234,5 +234,13 @@ private:
   format_t format;
 };
 
+template <typename... Ts> class Nartis100ForceUpdateAction : public Action<Ts...> {
+public:
+  Nartis100ForceUpdateAction(Nartis100 *parent) : parent_(parent) {}
+  void play(Ts... x) override { parent_->update(); }
+private:
+  Nartis100 *parent_;
+};
+
 } // namespace nartis100
 } // namespace esphome

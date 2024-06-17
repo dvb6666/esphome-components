@@ -70,7 +70,9 @@ button:
     name: Update
     entity_category: diagnostic
     on_press:
-      - lambda: "id(nartis_id).update();"
+      # - lambda: "id(nartis_id).update();"
+      - nartis100.force_update:
+          id: nartis_id
 
 time:
   - platform: homeassistant

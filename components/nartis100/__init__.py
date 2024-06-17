@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome import pins
+from esphome import automation, pins
 from esphome.components import binary_sensor, sensor, text_sensor, uart
 from esphome.const import (
     CONF_ID,
@@ -39,10 +39,12 @@ CONF_RELEASE_DATE = "release_date"
 CONF_ERROR = "error"
 
 nartis100_ns = cg.esphome_ns.namespace("nartis100")
-nartis100 = nartis100_ns.class_("Nartis100", cg.PollingComponent, uart.UARTDevice)
+Nartis100 = nartis100_ns.class_("Nartis100", cg.PollingComponent, uart.UARTDevice)
+# Actions
+Nartis100ForceUpdateAction = nartis100_ns.class_("Nartis100ForceUpdateAction", automation.Action)
 
 SCHEMA_ATTRS = {
-    cv.GenerateID(): cv.declare_id(nartis100),
+    cv.GenerateID(): cv.declare_id(Nartis100),
 #    cv.Optional(CONF_PASSWORD, default="111"): cv.string,
     cv.Required(CONF_PASSWORD): cv.All(cv.string, cv.Length(min=3,max=8)),
     cv.Optional(CONF_DIR_PIN): pins.gpio_output_pin_schema,
@@ -84,6 +86,8 @@ for conf_id in CONF_ENERGY:
 
 CONFIG_SCHEMA = cv.Schema(SCHEMA_ATTRS).extend(cv.polling_component_schema("60s")).extend(uart.UART_DEVICE_SCHEMA)
 
+FORCE_UPDATE_ACTION_SCHEMA = cv.Schema({ cv.GenerateID(CONF_ID): cv.use_id(Nartis100) })
+
 
 async def to_code(config):
     uart_component = await cg.get_variable(config[CONF_UART_ID])
@@ -120,3 +124,9 @@ async def to_code(config):
     if release_date_config := config.get(CONF_RELEASE_DATE):
         release_date = await text_sensor.new_text_sensor(release_date_config)
         cg.add(var.set_release_date_sensor(release_date))
+
+@automation.register_action("nartis100.force_update", Nartis100ForceUpdateAction, FORCE_UPDATE_ACTION_SCHEMA)
+async def update_action_to_code(config, action_id, template_arg, args):
+    parent = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, parent)
+    return var
