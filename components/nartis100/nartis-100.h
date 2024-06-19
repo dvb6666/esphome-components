@@ -92,7 +92,7 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) {
     size_t      size;
     uint8_t     complete;                   /* 1 - complete, 0 - not complete */
-    uint8_t     buff[UART_BUFF_SIZE*2];
+    uint8_t     buff[UART_BUFF_SIZE * 2];
 } result_package_t;
 
 
@@ -125,6 +125,7 @@ public:
   std::string& get_name() { return this->name_; }
   bool is_on_start() { return this->on_start_; }
   bool has_response() { return this->has_response_; }
+  int fill_notification_request(package_t *package);
   virtual int fill_request(package_t *package) = 0;
   virtual bool process_result(header_t *header, result_package_t *package) = 0;
   bool publish_result();

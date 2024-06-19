@@ -7,8 +7,9 @@ static const char *const TAG = "nartis100";
 
 #define CHUNK_SIZE 34
 
-#define PHASE_LENGTH 9
-#define skip_next_phases(error) { this->phase_ += (PHASE_LENGTH - phase - 1); this->error_ = error; }
+#define PHASE_LENGTH 10
+#define skip_next_phases(er) { this->phase_ += (PHASE_LENGTH - phase); this->error_ = er; return; }
+#define return_to_phase(ph) { this->phase_ += (ph - phase); return; }
 
 static const uint8_t app_const_name[] = {0xa1, 0x09, 0x06, 0x07, 0x60, 0x85, 0x74, 0x05, 0x08, 0x01, 0x01};
 static const uint8_t asce[] = {0x8a, 0x02, 0x07, 0x80};
@@ -49,6 +50,26 @@ static const uint16_t fcstab[256] = {
      0xf78f, 0xe606, 0xd49d, 0xc514, 0xb1ab, 0xa022, 0x92b9, 0x8330,
      0x7bc7, 0x6a4e, 0x58d5, 0x495c, 0x3de3, 0x2c6a, 0x1ef1, 0x0f78
 };
+
+
+int Command::fill_notification_request(package_t *raw_package) {
+  uint8_t *pkt_buff = (uint8_t*)raw_package;
+  set_header(raw_package);
+
+  // I don't know how true
+  raw_package->header.control = ((((meter.rrr << 5) + (meter.sss << 1)) | 0x10)) & 0xFE;
+  // raw_package->header.control = ((((meter.rrr << 5) + (meter.sss << 1)) | 0x10) + 2) & 0xFE;
+  meter.format.length += 3;                       /* + size command + size HCS   */
+
+  uint8_t *format = (uint8_t*)&(meter.format);
+  raw_package->header.format[0] = format[1];
+  raw_package->header.format[1] = format[0];
+  uint16_t crc = checksum(pkt_buff + 1, meter.format.length - 2);
+  raw_package->data[0] = crc & 0xff;
+  raw_package->data[1] = (crc >> 8) & 0xff;
+  raw_package->data[2] = FLAG;
+  return meter.format.length + 2;
+}
 
 bool Command::publish_result() {
   if (publish_size_ > 0 && publish_counter_ < publish_size_) {
@@ -254,7 +275,6 @@ int CommandSNRM::fill_request(package_t *raw_package) {
 
   return meter.format.length + 2;
 }
-
 
 int CommandOpenSession::fill_request(package_t *raw_package) {
   uint8_t *pkt_buff = (uint8_t*)raw_package;
@@ -513,6 +533,12 @@ void Nartis100::loop() {
     memset(&this->tx_package_, 0, sizeof(this->tx_package_));
     memset(&this->result_package_, 0, sizeof(this->result_package_));
     this->tx_bytes_length_ = this->commands_[cmd_idx]->fill_request(&this->tx_package_);
+  } break;
+
+  case 2: { // preparing to send data
+    //memset(&this->tx_package_, 0, sizeof(this->tx_package_));
+    //memset(&this->result_package_, 0, sizeof(this->result_package_));
+    //this->tx_bytes_length_ = this->commands_[cmd_idx]->fill_request(&this->tx_package_);
     this->tx_bytes_sent_ = 0;
     this->rx_bytes_needed_ = this->commands_[cmd_idx]->has_response() ? MIN_FRAME_SIZE : 0;
     this->rx_bytes_received_ = 0;
@@ -520,7 +546,7 @@ void Nartis100::loop() {
     ESP_LOGV(TAG, "Need to send %d bytes for command [%s]", this->tx_bytes_length_, this->commands_[cmd_idx]->get_name().c_str());
   } break;
 
-  case 2: { // set dir_pin to state SEND
+  case 3: { // set dir_pin to state SEND
     if (this->dir_pin_) {
       ESP_LOGV(TAG, "Set dir_pin to state SEND");
       this->dir_pin_->digital_write(true);
@@ -528,7 +554,7 @@ void Nartis100::loop() {
     }
   } break;
 
-  case 3: { // sending command data
+  case 4: { // sending command data
     uint16_t bytes_to_send = std::min(this->tx_bytes_length_ - this->tx_bytes_sent_, CHUNK_SIZE);
     ESP_LOGV(TAG, "Sending %d of %d bytes for command [%s]", bytes_to_send, this->tx_bytes_length_, this->commands_[cmd_idx]->get_name().c_str());
     this->write_array(this->tx_buffer_ + this->tx_bytes_sent_, bytes_to_send);
@@ -542,7 +568,7 @@ void Nartis100::loop() {
     delay(5);
   } break;
 
-  case 4: { // delay after command sent
+  case 5: { // delay after command sent
     if (this->dir_pin_) {
       this->dir_pin_->digital_write(false);
       ESP_LOGV(TAG, "Set dir_pin to state RECV");
@@ -550,7 +576,7 @@ void Nartis100::loop() {
     delay(5);
   } break;
 
-  case 5: { // receiving data
+  case 6: { // receiving packet
     for (uint16_t i = 0; i < CHUNK_SIZE && this->rx_bytes_received_ < this->rx_bytes_needed_ && this->available(); i++) {
       uint8_t c = this->read();
       if (this->rx_bytes_received_ == 0 && c != FLAG)
@@ -578,11 +604,9 @@ void Nartis100::loop() {
     }
   } break;
 
-  case 6: { // validating data
+  case 7: { // validating packet
     uint8_t size_d, size_s;
-    uint16_t check_crc, lower, upper, data_size;
-    check_crc = this->rx_buffer_[this->rx_bytes_needed_ - (meter.format.segmentation ? 1 : 2)];
-    check_crc = (check_crc << 8) + this->rx_buffer_[this->rx_bytes_needed_ - (meter.format.segmentation ? 2 : 3)];
+    uint16_t crc, check_crc, lower, upper, data_size;
     if (format.type != TYPE3) {
       ESP_LOGW(TAG, "Bad header type 0x%02X received for command [%s]", format.type, this->commands_[cmd_idx]->get_name().c_str());
       skip_next_phases(true);
@@ -594,24 +618,33 @@ void Nartis100::loop() {
     } else if ((size_s = Command::get_address_size(this->rx_package_.header.addr + size_d)) == 0 || !Command::get_address(this->rx_package_.header.addr + size_d, size_s, &lower, &upper)) {
       ESP_LOGW(TAG, "Received packet with bad src address for command [%s]", this->commands_[cmd_idx]->get_name().c_str());
       skip_next_phases(true);
-    } else if (Command::checksum(this->rx_buffer_ + 1, format.length - 2) != check_crc) {
-      ESP_LOGW(TAG, "Received packet with wrong checksum for command [%s]", this->commands_[cmd_idx]->get_name().c_str());
-      skip_next_phases(true);
-    } else {
-      // all validations passed
-      meter.format = format;
-      meter.rrr = (this->rx_package_.header.control >> 5) & 0x07;
-      meter.sss = (this->rx_package_.header.control >> 1) & 0x07;
-      data_size = this->rx_bytes_needed_ - sizeof(header_t) - (meter.format.segmentation ? 4 : 3);
-      memcpy(this->result_package_.buff + this->result_package_.size, this->rx_package_.data + 2, data_size);
-      this->result_package_.size += data_size;
     }
+    crc = Command::checksum(this->rx_buffer_ + 1, format.length - 2);
+    check_crc = this->rx_buffer_[this->rx_bytes_needed_ - (format.segmentation ? 1 : 2)];
+    check_crc = (check_crc << 8) + this->rx_buffer_[this->rx_bytes_needed_ - (format.segmentation ? 2 : 3)];
+    data_size = this->rx_bytes_needed_ - sizeof(header_t) - (meter.format.segmentation ? 4 : 3);
+    if (crc != check_crc) {
+      ESP_LOGW(TAG, "Received packet with wrong checksum (0x%04X instead of 0x%04X) for command [%s]", check_crc, crc, this->commands_[cmd_idx]->get_name().c_str());
+      skip_next_phases(true);
+    } else if (this->result_package_.size + data_size > sizeof(this->result_package_.buff)) {
+      ESP_LOGW(TAG, "Received too big packet (%d bytes, but max size is %d bytes) for command [%s]", data_size, sizeof(this->result_package_.buff), this->commands_[cmd_idx]->get_name().c_str());
+      skip_next_phases(true);
+    }
+    // all validations passed
+    ESP_LOGV(TAG, "Packet OK (checksum 0x%04X, data size %d bytes) for command [%s]", crc, data_size, this->commands_[cmd_idx]->get_name().c_str());
+    meter.format = format;
+    meter.rrr = (this->rx_package_.header.control >> 5) & 0x07;
+    meter.sss = (this->rx_package_.header.control >> 1) & 0x07;
+    memcpy(this->result_package_.buff + this->result_package_.size, this->rx_package_.data + 2, data_size);
+    this->result_package_.size += data_size;
   } break;
 
-  case 7: { // processing command
+  case 8: { // processing command
     if (meter.format.segmentation) {
-      ESP_LOGW(TAG, "Unsupported packet with segmentation for command [%s]", this->commands_[cmd_idx]->get_name().c_str());
-      // TODO send_notification();
+      ESP_LOGV(TAG, "Packet with segmentation for command [%s]. Sending notification command for next packet", this->commands_[cmd_idx]->get_name().c_str());
+      memset(&this->tx_package_, 0, sizeof(this->tx_package_));
+      this->tx_bytes_length_ = this->commands_[cmd_idx]->fill_notification_request(&this->tx_package_);
+      return_to_phase(2);
     } else {
       ESP_LOGV(TAG, "Processing %d bytes result for command [%s]", this->result_package_.size, this->commands_[cmd_idx]->get_name().c_str());
       if (!this->commands_[cmd_idx]->process_result(&this->rx_package_.header, &this->result_package_)) {
@@ -621,7 +654,7 @@ void Nartis100::loop() {
     }
   } break;
 
-  case 8: { // publishing results until publish_result() return `true`
+  case 9: { // publishing results until publish_result() return `true`
     ESP_LOGV(TAG, "Publishing result for command [%s]", this->commands_[cmd_idx]->get_name().c_str());
     if (!this->commands_[cmd_idx]->publish_result())
       return;
