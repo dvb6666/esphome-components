@@ -464,8 +464,8 @@ void Nartis100::setup() {
     this->dir_pin_->digital_write(false);
   }
   // read old unknown/unused data
-  while (this->available())
-    this->read();
+  /*while (this->available())
+    this->read();*/
 
   this->commands_.push_back(new CommandSNRM());
   this->commands_.push_back(new CommandOpenSession());
@@ -536,12 +536,16 @@ void Nartis100::loop() {
   } break;
 
   case 2: { // preparing to send data
-    //memset(&this->tx_package_, 0, sizeof(this->tx_package_));
-    //memset(&this->result_package_, 0, sizeof(this->result_package_));
-    //this->tx_bytes_length_ = this->commands_[cmd_idx]->fill_request(&this->tx_package_);
-    this->tx_bytes_sent_ = 0;
+    // read old unknown/unused data
+    uint16_t unused;
+    for (unused = 0; unused < CHUNK_SIZE && this->available(); unused++)
+      this->read();
+    if (unused > 0) {
+      ESP_LOGV(TAG, "Received %d unknown/unused bytes for command [%s]", unused, this->commands_[cmd_idx]->get_name().c_str());
+      return_to_phase(2);
+    }
+    this->tx_bytes_sent_ = this->rx_bytes_received_ = 0;
     this->rx_bytes_needed_ = this->commands_[cmd_idx]->has_response() ? MIN_FRAME_SIZE : 0;
-    this->rx_bytes_received_ = 0;
     this->wait_time_ = millis() + 1000; // timeout 1000 ms
     ESP_LOGV(TAG, "Need to send %d bytes for command [%s]", this->tx_bytes_length_, this->commands_[cmd_idx]->get_name().c_str());
   } break;
@@ -582,12 +586,24 @@ void Nartis100::loop() {
       if (this->rx_bytes_received_ == 0 && c != FLAG)
         continue;
       this->rx_buffer_[this->rx_bytes_received_++] = c;
-      if (this->rx_bytes_received_ == MIN_FRAME_SIZE) {
+      if (this->rx_bytes_received_ == 3) {
         uint8_t *ptr_format = (uint8_t*)&format;
         *(ptr_format + 1) = this->rx_buffer_[1];
         *ptr_format = this->rx_buffer_[2];
+        ESP_LOGV(TAG, "Received header: type=0x%02X, segmentation=%s, length=%d (full_size=%d)", format.type, format.segmentation ? "yes" : "no", format.length, format.length + (format.segmentation ? 1 : 2));
+        if (format.type != TYPE3) {
+          ESP_LOGV(TAG, "Bad header type 0x%02X received for command [%s]. Reset rx_bytes_received counter", format.type, this->commands_[cmd_idx]->get_name().c_str());
+          this->rx_bytes_received_ = 0;
+          return_to_phase(6);
+        }
         this->rx_bytes_needed_ = format.length + (format.segmentation ? 1 : 2);
-        ESP_LOGV(TAG, "Received header: type=0x%02X, segmentation=%s, length=%d (full_size=%d)", format.type, format.segmentation ? "yes" : "no", format.length, this->rx_bytes_needed_);
+        if (this->rx_bytes_needed_ < MIN_FRAME_SIZE) {
+          ESP_LOGW(TAG, "Too small frame size (%d bytes) received for command [%s]", this->rx_bytes_needed_, this->commands_[cmd_idx]->get_name().c_str());
+          skip_next_phases(true);
+        } else if (this->rx_bytes_needed_ > sizeof(package_t)) {
+          ESP_LOGW(TAG, "Too big frame size (%d bytes) received for command [%s]", this->rx_bytes_needed_, this->commands_[cmd_idx]->get_name().c_str());
+          skip_next_phases(true);
+        }
       }
     }
     if (this->rx_bytes_received_ < this->rx_bytes_needed_) {
@@ -607,10 +623,7 @@ void Nartis100::loop() {
   case 7: { // validating packet
     uint8_t size_d, size_s;
     uint16_t crc, check_crc, lower, upper, data_size;
-    if (format.type != TYPE3) {
-      ESP_LOGW(TAG, "Bad header type 0x%02X received for command [%s]", format.type, this->commands_[cmd_idx]->get_name().c_str());
-      skip_next_phases(true);
-    } else if (!format.segmentation && this->rx_buffer_[this->rx_bytes_needed_ - 1] != FLAG) {
+    if (!format.segmentation && this->rx_buffer_[this->rx_bytes_needed_ - 1] != FLAG) {
       ESP_LOGW(TAG, "Received incomplete packet for command [%s]", this->commands_[cmd_idx]->get_name().c_str());
     } else if ((size_d = Command::get_address_size(this->rx_package_.header.addr)) == 0 || !Command::get_address(this->rx_package_.header.addr, size_d, &lower, &upper)) {
       ESP_LOGW(TAG, "Received packet with bad dest address for command [%s]", this->commands_[cmd_idx]->get_name().c_str());
@@ -627,7 +640,7 @@ void Nartis100::loop() {
       ESP_LOGW(TAG, "Received packet with wrong checksum (0x%04X instead of 0x%04X) for command [%s]", check_crc, crc, this->commands_[cmd_idx]->get_name().c_str());
       skip_next_phases(true);
     } else if (this->result_package_.size + data_size > sizeof(this->result_package_.buff)) {
-      ESP_LOGW(TAG, "Received too big packet (%d bytes, but max size is %d bytes) for command [%s]", data_size, sizeof(this->result_package_.buff), this->commands_[cmd_idx]->get_name().c_str());
+      ESP_LOGW(TAG, "Received too big packet (%d bytes, but max size is %d bytes) for command [%s]", this->result_package_.size + data_size, sizeof(this->result_package_.buff), this->commands_[cmd_idx]->get_name().c_str());
       skip_next_phases(true);
     }
     // all validations passed
@@ -641,12 +654,13 @@ void Nartis100::loop() {
 
   case 8: { // processing command
     if (meter.format.segmentation) {
-      ESP_LOGV(TAG, "Packet with segmentation for command [%s]. Sending notification command for next packet", this->commands_[cmd_idx]->get_name().c_str());
+      ESP_LOGV(TAG, "Packet with segmentation for command [%s]. Sending notification command for next frame", this->commands_[cmd_idx]->get_name().c_str());
       memset(&this->tx_package_, 0, sizeof(this->tx_package_));
       this->tx_bytes_length_ = this->commands_[cmd_idx]->fill_notification_request(&this->tx_package_);
       return_to_phase(2);
     } else {
       ESP_LOGV(TAG, "Processing %d bytes result for command [%s]", this->result_package_.size, this->commands_[cmd_idx]->get_name().c_str());
+      this->result_package_.complete = true;
       if (!this->commands_[cmd_idx]->process_result(&this->rx_package_.header, &this->result_package_)) {
         ESP_LOGW(TAG, "Failed to process result for command [%s]", this->commands_[cmd_idx]->get_name().c_str());
         skip_next_phases(true);

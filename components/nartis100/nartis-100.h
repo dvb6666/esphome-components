@@ -92,7 +92,7 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) {
     size_t      size;
     uint8_t     complete;                   /* 1 - complete, 0 - not complete */
-    uint8_t     buff[UART_BUFF_SIZE * 2];
+    uint8_t     buff[UART_BUFF_SIZE];
 } result_package_t;
 
 
@@ -116,7 +116,6 @@ static request_t attr_descriptor_list = {
 
 static meter_t meter;
 
-//auto def = [](uint16_t) { return true; };
 
 class Command {
 public:
