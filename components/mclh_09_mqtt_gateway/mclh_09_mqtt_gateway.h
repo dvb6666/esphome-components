@@ -46,11 +46,11 @@ struct Select {
   std::vector<std::string> &options;
 };
 
-const char *MEASURE = "measurement", *HUMIDITY = "humidity", *SOIL_C = "soil";
+const char *MEASURE = "measurement", *HUMIDITY = "humidity", *SOIL2 = "soil";
 Sensor BATT{"batt", "Battery", "%", "battery", NULL, MEASURE, 0, true};
 Sensor TEMP{"temp", "Temperature", "°C", "temperature", NULL, MEASURE, 1, false};
 Sensor LUMI{"lumi", "Illuminance", "lx", "illuminance", NULL, MEASURE, 0, false};
-Sensor SOIL{"soil", "Soil moisture", "%", SOIL_C, "mdi:water", MEASURE, 0, false};
+Sensor SOIL{"soil", "Soil moisture", "%", SOIL2, "mdi:water", MEASURE, 0, false};
 Sensor HUMI{"humi", "Air humidity", "%", HUMIDITY, NULL, MEASURE, 0, false};
 Sensor RSSI{"rssi", "RSSI", "dBm", "signal_strength", "mdi:signal", NULL, 0, true};
 Sensor ERRORS{"errors", "Error count", NULL, NULL, "mdi:alert-circle", MEASURE, 0, true};
