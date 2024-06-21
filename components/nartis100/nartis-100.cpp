@@ -590,13 +590,14 @@ void Nartis100::loop() {
         uint8_t *ptr_format = (uint8_t*)&format;
         *(ptr_format + 1) = this->rx_buffer_[1];
         *ptr_format = this->rx_buffer_[2];
-        ESP_LOGV(TAG, "Received header: type=0x%02X, segmentation=%s, length=%d (full_size=%d)", format.type, format.segmentation ? "yes" : "no", format.length, format.length + (format.segmentation ? 1 : 2));
+        uint16_t full_size = format.length + (format.segmentation ? 1 : 2);
+        ESP_LOGV(TAG, "Received header: type=0x%02X, segmentation=%s, length=%d (full_size=%d)", format.type, format.segmentation ? "yes" : "no", format.length, full_size);
         if (format.type != TYPE3) {
           ESP_LOGV(TAG, "Bad header type 0x%02X received for command [%s]. Reset rx_bytes_received counter", format.type, this->commands_[cmd_idx]->get_name().c_str());
           this->rx_bytes_received_ = 0;
           return_to_phase(6);
         }
-        this->rx_bytes_needed_ = format.length + (format.segmentation ? 1 : 2);
+        this->rx_bytes_needed_ = full_size;
         if (this->rx_bytes_needed_ < MIN_FRAME_SIZE) {
           ESP_LOGW(TAG, "Too small frame size (%d bytes) received for command [%s]", this->rx_bytes_needed_, this->commands_[cmd_idx]->get_name().c_str());
           skip_next_phases(true);
@@ -635,7 +636,7 @@ void Nartis100::loop() {
     crc = Command::checksum(this->rx_buffer_ + 1, format.length - 2);
     check_crc = this->rx_buffer_[this->rx_bytes_needed_ - (format.segmentation ? 1 : 2)];
     check_crc = (check_crc << 8) + this->rx_buffer_[this->rx_bytes_needed_ - (format.segmentation ? 2 : 3)];
-    data_size = this->rx_bytes_needed_ - sizeof(header_t) - (meter.format.segmentation ? 4 : 3);
+    data_size = this->rx_bytes_needed_ - sizeof(header_t) - (format.segmentation ? 4 : 3);
     if (crc != check_crc) {
       ESP_LOGW(TAG, "Received packet with wrong checksum (0x%04X instead of 0x%04X) for command [%s]", check_crc, crc, this->commands_[cmd_idx]->get_name().c_str());
       skip_next_phases(true);
