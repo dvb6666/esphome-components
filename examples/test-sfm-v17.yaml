@@ -1,0 +1,69 @@
+esphome:
+  name: test-sfm-v17
+  friendly_name: test-sfm-v17
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  # level: verbose
+
+# Enable Home Assistant API
+api:
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+
+time:
+  - platform: homeassistant
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+  - platform: factory_reset
+    name: Reset
+    entity_category: diagnostic
+  - platform: template
+    name: Scan
+    on_press:
+      then:
+        - lambda: |-
+            id(svm_id).start_scan();
+  - platform: template
+    name: Register
+    on_press:
+      then:
+        - lambda: |-
+            id(svm_id).start_register();
+
+uart:
+  id: uart_for_svm
+  tx_pin: 27
+  rx_pin: 26
+  baud_rate: 115200
+  # debug:
+  #   direction: BOTH
+  #   sequence:
+  #      - lambda: UARTDebug::log_hex(direction, bytes, ' ');
+
+sfm_v1_7:
+  id: svm_id
+  uart_id: uart_for_svm
+  vcc_pin: 2
+  irq_pin: 15
+  # dir_pin: 20
+  error:
+    name: Error
+
+external_components:
+  - source: github://dvb6666/esphome-components
+    refresh: 1sec
