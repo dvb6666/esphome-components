@@ -77,7 +77,7 @@ button:
     on_press:
       then:
         - sfm_v1_7.set_color:
-            start: red
+            start: yellow
             end: green     # default OFF
             period: 2000ms # default 500ms
             delay: 2000ms  # default 500ms
