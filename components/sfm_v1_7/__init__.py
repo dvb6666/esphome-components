@@ -6,6 +6,8 @@ from esphome.const import (
     CONF_ID,
     CONF_UART_ID,
     CONF_DIR_PIN,
+    CONF_PERIOD,
+    CONF_DELAY,
     DEVICE_CLASS_PROBLEM,
     ENTITY_CATEGORY_DIAGNOSTIC,
 )
@@ -60,6 +62,8 @@ SET_COLOR_ACTION_SCHEMA = cv.Schema({
     cv.GenerateID(CONF_ID): cv.use_id(SFM_v1_7),
     cv.Required(CONF_COLOR_START): cv.enum(SFM_COLORS, upper=True),
     cv.Optional(CONF_COLOR_END, default="OFF"): cv.enum(SFM_COLORS, upper=True),
+    cv.Optional(CONF_PERIOD, default="500ms"): cv.positive_time_period_milliseconds,
+    cv.Optional(CONF_DELAY, default="500ms"): cv.positive_time_period_milliseconds,
 })
 
 async def to_code(config):
@@ -81,5 +85,5 @@ async def to_code(config):
 @automation.register_action("sfm_v1_7.set_color", SFM_SetColorAction, SET_COLOR_ACTION_SCHEMA)
 async def update_action_to_code(config, action_id, template_arg, args):
     parent = await cg.get_variable(config[CONF_ID])
-    var = cg.new_Pvariable(action_id, template_arg, parent, config[CONF_COLOR_START], config[CONF_COLOR_END])
+    var = cg.new_Pvariable(action_id, template_arg, parent, config[CONF_COLOR_START], config[CONF_COLOR_END], config[CONF_PERIOD], config[CONF_DELAY])
     return var

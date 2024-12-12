@@ -59,10 +59,15 @@ void SFM_v1_7::start_register(uint16_t uid, uint8_t role) {
   this->phase_ = 1;
 }
 
-void SFM_v1_7::set_color(SFM_Color start, SFM_Color end) {
-  ESP_LOGD(TAG, "Set color (%d, %d)", start, end);
+void SFM_v1_7::set_color(SFM_Color start, SFM_Color end, uint16_t period, uint16_t delay) {
+  ESP_LOGD(TAG, "Set color: start %d, end %d, period %dms, delay %dms)", start, end, period, delay);
+  period /= 10;
+  if (period < 30) period = 30;
+  if (period > 200) period = 200;
   setColor.p1 = start;
   setColor.p2 = end;
+  setColor.p3 = (uint8_t) period;
+  setColor.delay = delay;
   this->batch_ = &colorBatch;
   this->phase_ = 1;
 }

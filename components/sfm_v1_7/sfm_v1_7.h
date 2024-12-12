@@ -37,11 +37,10 @@ public:
   void loop() override;
   void set_irq_pin(InternalGPIOPin *pin) { this->irq_pin_ = pin; }
   void set_dir_pin(InternalGPIOPin *pin) { this->dir_pin_ = pin; }
-  //void set_touch_mode(InternalGPIOPin *irq_pin) { this->irq_pin_ = irq_pin; }
   void set_error_sensor(binary_sensor::BinarySensor *sensor) { this->sensor_error_ = sensor; }
   void start_scan();
   void start_register(uint16_t uid = 0, uint8_t role = 3);
-  void set_color(SFM_Color start, SFM_Color end);
+  void set_color(SFM_Color start, SFM_Color end = SFM_Color::OFF, uint16_t period = 500, uint16_t delay = 500);
 
 protected:
   void delay(uint32_t ms) { this->sleep_time_ = millis() + ms; }
@@ -59,11 +58,13 @@ private:
 
 template <typename... Ts> class SFM_SetColorAction : public Action<Ts...> {
 public:
-  SFM_SetColorAction(SFM_v1_7 *parent, SFM_Color start, SFM_Color end) : parent_(parent), start_(start), end_(end) {}
-  void play(Ts... x) override { parent_->set_color(start_, end_); }
+  SFM_SetColorAction(SFM_v1_7 *parent, SFM_Color start, SFM_Color end, uint16_t period, uint16_t delay)
+    : parent_(parent), start_(start), end_(end), period_(period), delay_(delay) {}
+  void play(Ts... x) override { parent_->set_color(start_, end_, period_, delay_); }
 private:
   SFM_v1_7 *parent_;
   SFM_Color start_, end_;
+  uint16_t period_, delay_;
 };
 
 } // namespace sfm_v1_7

@@ -78,7 +78,9 @@ button:
       then:
         - sfm_v1_7.set_color:
             start: red
-            end: green
+            end: green     # default OFF
+            period: 2000ms # default 500ms
+            delay: 2000ms  # default 500ms
   - platform: template
     name: "Color from selects"
     on_press:
