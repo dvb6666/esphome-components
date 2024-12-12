@@ -25,6 +25,34 @@ wifi:
 time:
   - platform: homeassistant
 
+select:
+  - platform: template
+    id: color_start
+    name: "Color start"
+    optimistic: true
+    options:
+      - "yellow"
+      - "purple"
+      - "red"
+      - "cyan"
+      - "green"
+      - "blue"
+      - "off"
+    initial_option: "yellow"
+  - platform: template
+    id: color_end
+    name: "Color end"
+    optimistic: true
+    options:
+      - "yellow"
+      - "purple"
+      - "red"
+      - "cyan"
+      - "green"
+      - "blue"
+      - "off"
+    initial_option: "off"
+
 button:
   - platform: restart
     name: Restart
@@ -33,7 +61,7 @@ button:
     name: Reset
     entity_category: diagnostic
   - platform: template
-    name: Scan
+    name: Scan # manual Scan if IRQ pin disabled
     on_press:
       then:
         - lambda: |-
@@ -44,11 +72,26 @@ button:
       then:
         - lambda: |-
             id(sfm_id).start_register();
+  - platform: template
+    name: "Yellow Green"
+    on_press:
+      then:
+        - sfm_v1_7.set_color:
+            start: red
+            end: green
+  - platform: template
+    name: "Color from selects"
+    on_press:
+      then:
+        - lambda: |-
+            auto start = static_cast<sfm_v1_7::SFM_Color>(1 + id(color_start).active_index().value());
+            auto end = static_cast<sfm_v1_7::SFM_Color>(1 + id(color_end).active_index().value());
+            id(sfm_id).set_color(start, end);
 
 uart:
   id: uart_for_sfm
-  tx_pin: 27
-  rx_pin: 26
+  tx_pin: 26
+  rx_pin: 27
   baud_rate: 115200
   # debug:
   #   direction: BOTH

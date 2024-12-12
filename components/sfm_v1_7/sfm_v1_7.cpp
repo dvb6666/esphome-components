@@ -41,6 +41,9 @@ Command regThird = { 0x03, 0x00, 0x00, 0x00, 0, false };
 Command ledGreen = { 0xC3, 0x05, 0x05, LED_TIME, 200, true };
 CommandBatch registerBatch { { &ledYellow, &regFirst, &ledPurple, &regSecond, &ledBlue, &regThird, &ledGreen } };
 
+Command setColor = { 0xC3, 0x05, 0x05, LED_TIME, 2000, false };
+CommandBatch colorBatch { { &setColor } };
+
 void SFM_v1_7::start_scan() {
   ESP_LOGD(TAG, "Start scan batch");
   this->batch_ = &scanBatch;
@@ -53,6 +56,14 @@ void SFM_v1_7::start_register(uint16_t uid, uint8_t role) {
   regFirst.p2 = uid & 0xFF;
   regFirst.p3 = role & 0x03;
   this->batch_ = &registerBatch;
+  this->phase_ = 1;
+}
+
+void SFM_v1_7::set_color(SFM_Color start, SFM_Color end) {
+  ESP_LOGD(TAG, "Set color (%d, %d)", start, end);
+  setColor.p1 = start;
+  setColor.p2 = end;
+  this->batch_ = &colorBatch;
   this->phase_ = 1;
 }
 

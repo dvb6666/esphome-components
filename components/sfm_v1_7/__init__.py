@@ -16,14 +16,27 @@ DEPENDENCIES = ["uart"]
 AUTO_LOAD = ["binary_sensor"]
 MULTI_CONF = True
 
-#CONF_TOUCH_MODE = "touch_mode"
 CONF_VCC_PIN = "vcc_pin"
-CONF_VCC_ALWAYS_ON="vcc_always_on"
+CONF_VCC_ALWAYS_ON = "vcc_always_on"
 CONF_IRQ_PIN = "irq_pin"
 CONF_ERROR = "error"
+CONF_COLOR_START = "start"
+CONF_COLOR_END = "end"
 
 sfm_v1_7_ns = cg.esphome_ns.namespace("sfm_v1_7")
 SFM_v1_7 = sfm_v1_7_ns.class_("SFM_v1_7", cg.Component, uart.UARTDevice)
+SFM_SetColorAction = sfm_v1_7_ns.class_("SFM_SetColorAction", automation.Action)
+
+SFM_Color = sfm_v1_7_ns.enum("SFM_Color")
+SFM_COLORS = {
+    "YELLOW": SFM_Color.YELLOW,
+    "PURPLE": SFM_Color.PURPLE,
+    "RED": SFM_Color.RED,
+    "CYAN": SFM_Color.CYAN,
+    "GREEN": SFM_Color.GREEN,
+    "BLUE": SFM_Color.BLUE,
+    "OFF": SFM_Color.OFF,
+}
 
 CONFIG_SCHEMA = (
     cv.Schema(
@@ -33,11 +46,6 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_VCC_ALWAYS_ON, default=False): cv.boolean,
             cv.Optional(CONF_IRQ_PIN): pins.internal_gpio_input_pin_schema,
             cv.Optional(CONF_DIR_PIN): pins.internal_gpio_output_pin_schema,
-#            cv.Optional(CONF_TOUCH_MODE): cv.Schema(
-#                {
-#                    cv.Required(CONF_IRQ_PIN): pins.internal_gpio_input_pin_schema,
-#                }
-#            ),
             cv.Optional(CONF_ERROR): binary_sensor.binary_sensor_schema(
                 device_class=DEVICE_CLASS_PROBLEM,
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
@@ -48,8 +56,11 @@ CONFIG_SCHEMA = (
     .extend(uart.UART_DEVICE_SCHEMA)
 )
 
-#FORCE_UPDATE_ACTION_SCHEMA = cv.Schema({ cv.GenerateID(CONF_ID): cv.use_id(Nartis100) })
-
+SET_COLOR_ACTION_SCHEMA = cv.Schema({
+    cv.GenerateID(CONF_ID): cv.use_id(SFM_v1_7),
+    cv.Required(CONF_COLOR_START): cv.enum(SFM_COLORS, upper=True),
+    cv.Optional(CONF_COLOR_END, default="OFF"): cv.enum(SFM_COLORS, upper=True),
+})
 
 async def to_code(config):
     uart_component = await cg.get_variable(config[CONF_UART_ID])
@@ -63,9 +74,12 @@ async def to_code(config):
     if dir_pin_config := config.get(CONF_DIR_PIN):
         dir_pin = await cg.gpio_pin_expression(dir_pin_config)
         cg.add(var.set_dir_pin(dir_pin))
-#    if touch_mode_config := config.get(CONF_TOUCH_MODE):
-#        irq_pin = await cg.gpio_pin_expression(touch_mode_config[CONF_IRQ_PIN])
-#        cg.add(var.set_touch_mode(irq_pin))
     if error_config := config.get(CONF_ERROR):
         sens = await binary_sensor.new_binary_sensor(error_config)
         cg.add(var.set_error_sensor(sens))
+
+@automation.register_action("sfm_v1_7.set_color", SFM_SetColorAction, SET_COLOR_ACTION_SCHEMA)
+async def update_action_to_code(config, action_id, template_arg, args):
+    parent = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, parent, config[CONF_COLOR_START], config[CONF_COLOR_END])
+    return var
