@@ -20,7 +20,8 @@ struct CommandBatch {
 
 class SFM_v1_7 : public Component, public uart::UARTDevice {
 public:
-  SFM_v1_7(uart::UARTComponent *uart, InternalGPIOPin *vcc_pin) : uart::UARTDevice(uart), vcc_pin_(vcc_pin) {};
+  SFM_v1_7(uart::UARTComponent *uart, InternalGPIOPin *vcc_pin, bool vcc_always_on)
+    : uart::UARTDevice(uart), vcc_pin_(vcc_pin), vcc_always_on_(vcc_always_on) {};
   void setup() override;
   void dump_config() override;
   void loop() override;
@@ -40,7 +41,7 @@ private:
   CommandBatch *batch_{nullptr};
   uint16_t rx_bytes_needed_{0}, rx_bytes_received_{0};
   uint8_t tx_buffer_[COMMAND_SIZE], rx_buffer_[COMMAND_SIZE];
-  bool error_{false}, started_{false}, touch_mode_{false};
+  bool vcc_always_on_, error_{false}, last_touch_state_{false};
   InternalGPIOPin *dir_pin_{nullptr}, *irq_pin_{nullptr}, *vcc_pin_;
   binary_sensor::BinarySensor *sensor_error_{nullptr};
 };

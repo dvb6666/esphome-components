@@ -18,6 +18,7 @@ MULTI_CONF = True
 
 #CONF_TOUCH_MODE = "touch_mode"
 CONF_VCC_PIN = "vcc_pin"
+CONF_VCC_ALWAYS_ON="vcc_always_on"
 CONF_IRQ_PIN = "irq_pin"
 CONF_ERROR = "error"
 
@@ -29,6 +30,7 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(SFM_v1_7),
             cv.Required(CONF_VCC_PIN): pins.internal_gpio_output_pin_schema,
+            cv.Optional(CONF_VCC_ALWAYS_ON, default=False): cv.boolean,
             cv.Optional(CONF_IRQ_PIN): pins.internal_gpio_input_pin_schema,
             cv.Optional(CONF_DIR_PIN): pins.internal_gpio_output_pin_schema,
 #            cv.Optional(CONF_TOUCH_MODE): cv.Schema(
@@ -52,7 +54,7 @@ CONFIG_SCHEMA = (
 async def to_code(config):
     uart_component = await cg.get_variable(config[CONF_UART_ID])
     vcc_pin = await cg.gpio_pin_expression(config.get(CONF_VCC_PIN))
-    var = cg.new_Pvariable(config[CONF_ID], uart_component, vcc_pin)
+    var = cg.new_Pvariable(config[CONF_ID], uart_component, vcc_pin, config[CONF_VCC_ALWAYS_ON])
     await cg.register_component(var, config)
 
     if irq_pin_config := config.get(CONF_IRQ_PIN):

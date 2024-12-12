@@ -37,16 +37,16 @@ button:
     on_press:
       then:
         - lambda: |-
-            id(svm_id).start_scan();
+            id(sfm_id).start_scan();
   - platform: template
     name: Register
     on_press:
       then:
         - lambda: |-
-            id(svm_id).start_register();
+            id(sfm_id).start_register();
 
 uart:
-  id: uart_for_svm
+  id: uart_for_sfm
   tx_pin: 27
   rx_pin: 26
   baud_rate: 115200
@@ -56,9 +56,10 @@ uart:
   #      - lambda: UARTDebug::log_hex(direction, bytes, ' ');
 
 sfm_v1_7:
-  id: svm_id
-  uart_id: uart_for_svm
+  id: sfm_id
+  uart_id: uart_for_sfm
   vcc_pin: 2
+  # vcc_always_on: true
   irq_pin: 15
   # dir_pin: 20
   error:

@@ -58,10 +58,10 @@ void SFM_v1_7::start_register(uint16_t uid, uint8_t role) {
 
 void SFM_v1_7::setup() {
   this->phase_ = 0;
-  this->touch_mode_ = this->irq_pin_ != NULL;
+  this->last_touch_state_ = false;
 
   this->vcc_pin_->setup();
-  this->vcc_pin_->digital_write(!this->touch_mode_);
+  this->vcc_pin_->digital_write(this->vcc_always_on_);
 
   if (this->dir_pin_) {
     this->dir_pin_->setup();
@@ -79,6 +79,7 @@ void SFM_v1_7::setup() {
 void SFM_v1_7::dump_config() {
   ESP_LOGCONFIG(TAG, "SFM V1.7");
   LOG_PIN("  VCC Pin: ", this->vcc_pin_);
+  ESP_LOGCONFIG(TAG, "  VCC Always On: %s", this->vcc_always_on_ ? "true" : "false");
   if (this->dir_pin_) {
     LOG_PIN("  Direction Pin: ", this->dir_pin_);
   } else {
@@ -99,9 +100,13 @@ void SFM_v1_7::loop() {
     return;
 
   if (this->phase_ == 0) {
-    if (this->irq_pin_ && this->irq_pin_->digital_read()) {
+    if (this->irq_pin_ && !this->last_touch_state_ && this->irq_pin_->digital_read()) {
       ESP_LOGD(TAG, "Sensor touched!");
+      this->last_touch_state_ = true;
       this->start_scan();
+    } else if (this->irq_pin_ && this->last_touch_state_ && !this->irq_pin_->digital_read()) {
+      ESP_LOGD(TAG, "Sensor released!");
+      this->last_touch_state_ = false;
     }
     return;
   }
@@ -118,7 +123,7 @@ void SFM_v1_7::loop() {
   // first command starts
   if (cmd_idx == 0 && phase == 1) {
     this->error_ = false;
-    if (this->touch_mode_) { // power-on device
+    if (!this->vcc_always_on_) { // power-on device
       ESP_LOGV(TAG, "Phase[%d][%d]: set vcc_pin to state 'power-on'", cmd_idx, phase);
       this->vcc_pin_->digital_write(true);
       delay(POWER_ON_DELAY);
@@ -126,7 +131,7 @@ void SFM_v1_7::loop() {
   }
   // all commands finished
   else if (cmd_idx >= this->batch_->commands.size()) {
-    if (this->touch_mode_) { // power-off device
+    if (!this->vcc_always_on_) { // power-off device
       ESP_LOGV(TAG, "Phase[%d][%d]: set vcc_pin to state 'power-off'", cmd_idx, phase);
       this->vcc_pin_->digital_write(false);
       // delay(POWER_ON_DELAY);
@@ -191,7 +196,7 @@ void SFM_v1_7::loop() {
     this->flush();
     this->rx_bytes_needed_ = COMMAND_SIZE;
     this->rx_bytes_received_ = 0;
-    this->wait_time_ = millis() + 4000; // timeout N milliseconds
+    this->wait_time_ = millis() + 8100; // timeout N milliseconds
   } break;
 
   case 5: {
