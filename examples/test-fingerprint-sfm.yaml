@@ -1,0 +1,164 @@
+esphome:
+  name: test-fingerprint-sfm
+  friendly_name: test-fingerprint-sfm
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+logger:
+  # level: verbose
+api:
+ota:
+  - platform: esphome
+    password: !secret ota_password
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+
+time:
+  - platform: homeassistant
+
+select:
+  - platform: template
+    id: color_start
+    name: "Color1 start"
+    optimistic: true
+    options:
+      - "yellow"
+      - "purple"
+      - "red"
+      - "cyan"
+      - "green"
+      - "blue"
+      - "off"
+    initial_option: "yellow"
+  - platform: template
+    id: color_end
+    name: "Color2 end"
+    optimistic: true
+    options:
+      - "yellow"
+      - "purple"
+      - "red"
+      - "cyan"
+      - "green"
+      - "blue"
+      - "off"
+    initial_option: "off"
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+  - platform: factory_reset
+    name: Reset
+    entity_category: diagnostic
+  - platform: template
+    name: Scan # manual Scan if IRQ pin disabled
+    on_press:
+      then:
+        # - lambda: |-
+        #     id(sfm_id).start_scan();
+        - fingerprint_sfm.start_scan
+  - platform: template
+    name: Register
+    on_press:
+      then:
+        # - lambda: |-
+        #     id(sfm_id).start_register();
+        - fingerprint_sfm.start_register
+            # finger_id: 0
+            # role: 3
+            # delay: 2s
+
+  - platform: template
+    name: "Yellow Green"
+    on_press:
+      then:
+        - fingerprint_sfm.set_color:
+            start: yellow
+            end: green     # default OFF
+            period: 2000ms # default 500ms
+            delay: 2000ms  # default 0ms
+
+  - platform: template
+    name: "Color from selects"
+    on_press:
+      then:
+        - lambda: |-
+            auto start = static_cast<fingerprint_sfm::SfmColor>(1 + id(color_start).active_index().value());
+            auto end = static_cast<fingerprint_sfm::SfmColor>(1 + id(color_end).active_index().value());
+            id(sfm_id).set_color(start, end);
+
+  - platform: template
+    name: Delete
+    on_press:
+      then:
+        - fingerprint_sfm.delete: 200
+            # finger_id: 200
+
+  - platform: template
+    name: "Delete All"
+    on_press:
+      then:
+        - fingerprint_sfm.delete_all
+
+uart:
+  # id: uart_for_sfm
+  tx_pin: 26
+  rx_pin: 27
+  baud_rate: 115200
+  # debug:
+  #   direction: BOTH
+  #   sequence:
+  #      - lambda: UARTDebug::log_hex(direction, bytes, ' ');
+
+fingerprint_sfm:
+  id: sfm_id
+  # uart_id: uart_for_sfm
+  sensor_power_pin: 2
+  sensing_pin: 15
+  idle_period_to_sleep: 1s
+  error:
+    name: Error
+  fingerprint_count:
+    name: "Fingerprints count"
+  last_finger_id:
+    name: "Last Fingerprint ID"
+  on_finger_scan_start:
+    - fingerprint_sfm.set_color: blue
+        # start: blue
+        # period: 500ms
+  on_finger_scan_matched:
+    - lambda: |-
+        ESP_LOGI("lambda", "Fingerprint scanning finished successfully: UID=%d, role=%d", finger_id, role);
+    - fingerprint_sfm.set_color:
+        start: green
+        end: green
+  on_finger_scan_unmatched:
+    - lambda: |-
+        ESP_LOGI("lambda", "Fingerprint scanning finished with unknown fingerprint");
+    - fingerprint_sfm.set_color:
+        start: red
+        end: red
+  on_finger_scan_failed:
+    - lambda: |-
+        ESP_LOGW("lambda", "Fingerprint scanning failed with code %d", error_code);
+  on_register_step_start:
+    - lambda: ESP_LOGI("lambda", "Registration step %d started. Please put your finger", step);
+    - fingerprint_sfm.set_color: !lambda "return step == 1 ? fingerprint_sfm::YELLOW : step == 2 ? fingerprint_sfm::PURPLE : fingerprint_sfm::BLUE;"
+  on_register_step_done:
+    - lambda: |-
+        if (step == 3)
+          ESP_LOGI("lambda", "Registration finished successfully. New UID: %d", finger_id);
+        else
+          ESP_LOGI("lambda", "Registration step %d done. Please releases your finger", step);
+  on_register_failed:
+    - lambda: |-
+        ESP_LOGW("lambda", "Register failed with code %d", error_code);
+
+external_components:
+  - source: github://dvb6666/esphome-components
+    refresh: 1sec
