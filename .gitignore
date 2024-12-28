@@ -13,5 +13,4 @@
 /esphome
 /.pio
 
-/.vscode/
-
+**/.vscode/

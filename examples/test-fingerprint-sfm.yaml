@@ -127,6 +127,7 @@ fingerprint_sfm:
     name: "Fingerprints count"
   last_finger_id:
     name: "Last Fingerprint ID"
+    force_update: true
   on_finger_scan_start:
     - fingerprint_sfm.set_color: blue
         # start: blue

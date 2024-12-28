@@ -100,9 +100,14 @@ void SfmComponent::dump_config() {
   } else {
     ESP_LOGCONFIG(TAG, "  Idle Period to Sleep: Never");
   }
-  if (this->dir_pin_) {
+  if (this->dir_pin_)
     LOG_PIN("  Direction Pin: ", this->dir_pin_);
-  }
+  if (this->error_sensor_)
+    LOG_BINARY_SENSOR("  ", "Error Sensor: ", this->error_sensor_);
+  if (this->fingerprint_count_sensor_)
+    LOG_SENSOR("  ", "Fingerprints Count Sensor: ", this->fingerprint_count_sensor_);
+  if (this->last_finger_id_sensor_)
+    LOG_SENSOR("  ", "Last Fingerprint ID Sensor: ", this->last_finger_id_sensor_);
 }
 
 void SfmComponent::loop() {
@@ -365,6 +370,7 @@ bool SfmComponent::process_command(SfmCommand *command) {
   case 9: {
     // next steps for multi-steps commands
     if (command->code == 0x01 || command->code == 0x02) {
+      // next register step
       uint8_t next_step = command->code + 1;
       if (this->register_start_callback_.size() > 0) {
         ESP_LOGV(TAG, "Executing on_register_start(%d)", next_step);
@@ -374,6 +380,9 @@ bool SfmComponent::process_command(SfmCommand *command) {
       }
       ESP_LOGD(TAG, "Add to queue next %s register step", next_step == 2 ? "2nd" : "3rd");
       this->commands_queue_.push(make_unique<SfmCommand>(next_step, 0, 0, 0, next_step < 3 ? command->delay : 0));
+    } else if (command->code == 0x03) {
+      // request fingerprints count after successfull register
+      this->get_fingerprints_count();
     }
   } break;
 
