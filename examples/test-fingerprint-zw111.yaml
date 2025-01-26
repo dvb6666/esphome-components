@@ -1,0 +1,130 @@
+esphome:
+  name: test-fingerprint-zw111
+  friendly_name: test-fingerprint-zw111
+
+esp8266:
+  board: nodemcuv2
+
+logger:
+  # level: verbose
+api:
+ota:
+  - platform: esphome
+    password: !secret ota_password
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+
+time:
+  - platform: homeassistant
+
+uart:
+  tx_pin: D0 # Or GPIO17 for ESP32
+  rx_pin: D1 # Or GPIO16 for ESP32
+  rx_buffer_size: 1024
+  baud_rate: 57600
+  # debug:
+  #   direction: BOTH
+  #   sequence:
+  #      - lambda: UARTDebug::log_hex(direction, bytes, ' ');
+
+fingerprint_zw:
+  id: zw111_id
+  # uart_id: uart_for_zw111
+  # sensor_power_pin: D5
+  sensing_pin: D2
+  idle_period_to_sleep: 200ms
+  error: "Fingerprint Error"
+  fingerprint_count: "Fingerprint Count"
+  capacity: "Fingerprint Capacity"
+  last_finger_id:
+    name: "Last Fingerprint ID"
+    force_update: true
+  on_finger_scan_start:
+    - fingerprint_zw.aura_led_control:
+        state: FLASHING
+        color: BLUE
+  on_finger_scan_matched:
+    - lambda: |-
+        ESP_LOGI("lambda", "Fingerprint scanning finished successfully: UID=%d, Score=%d", finger_id, score);
+    - fingerprint_zw.aura_led_control:
+        state: FLASHING
+        color: GREEN
+        count: 3
+  on_finger_scan_unmatched:
+    - lambda: |-
+        ESP_LOGI("lambda", "Fingerprint scanning finished with unknown fingerprint");
+    - fingerprint_zw.aura_led_control:
+        state: FLASHING
+        color: RED
+        count: 3
+  on_finger_scan_failed:
+    - lambda: |-
+        ESP_LOGW("lambda", "Fingerprint scanning failed with code %d", error_code);
+    - fingerprint_zw.aura_led_control:
+        state: FLASHING
+        color: PURPLE
+        count: 3
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+  - platform: template # Test reading Flash Params
+    name: "Read Flash Params"
+    on_press:
+      - lambda: 'id(zw111_id).get_flash_parameters();'
+  - platform: template # Test Color OFF command
+    name: "Color OFF"
+    on_press:
+      - fingerprint_zw.aura_led_control: "OFF"
+  - platform: template # Test Custom Color command
+    name: "Color from selects"
+    on_press:
+      then:
+        - lambda: |-
+            auto state = static_cast<fingerprint_zw::ZwAuraLEDState>(1 + id(color_mode).active_index().value());
+            auto color = static_cast<fingerprint_zw::ZwAuraLEDColor>(id(color_start).active_index().value());
+            id(zw111_id).aura_led_control(state, color, id(color_count).state);
+
+select:
+  - platform: template
+    id: color_mode
+    name: "Color 1 state"
+    optimistic: true
+    options:
+      - "BREATHING"
+      - "FLASHING"
+      - "ALWAYS_ON"
+      - "ALWAYS_OFF"
+      - "GRADUAL_ON"
+      - "GRADUAL_OFF"
+    initial_option: "BREATHING"
+  - platform: template
+    id: color_start
+    name: "Color 2 color"
+    optimistic: true
+    options:
+      - "off"
+      - "blue"
+      - "green"
+      - "cyan"
+      - "red"
+      - "purple"
+      - "yellow"
+      - "white"
+    initial_option: "blue"
+
+number:
+  - platform: template
+    id: color_count
+    name: "Color 3 count"
+    optimistic: true
+    min_value: 0
+    max_value: 10
+    step: 1
+
+external_components:
+  - source: github://dvb6666/esphome-components
+    refresh: 1sec
