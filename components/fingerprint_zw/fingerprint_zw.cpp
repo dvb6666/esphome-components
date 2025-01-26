@@ -221,6 +221,8 @@ bool ZwComponent::process_command(ZwCommand *command) {
         this->tx_buffer_[12] = command->p3;
       if (command->length > 6)
         this->tx_buffer_[13] = command->p4;
+      if (command->length > 7)
+        this->tx_buffer_[14] = command->p5;
       // checksum starting package ID
       uint16_t checksum = 0;
       for (uint8_t i = 0; i <= command->length; i++)
