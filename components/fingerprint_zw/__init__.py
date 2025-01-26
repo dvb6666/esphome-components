@@ -19,7 +19,7 @@ from esphome.const import (
     CONF_ON_FINGER_SCAN_START,
     CONF_ON_FINGER_SCAN_MATCHED,
     CONF_ON_FINGER_SCAN_UNMATCHED,
-    # CONF_ON_FINGER_SCAN_MISPLACED,
+    CONF_ON_FINGER_SCAN_MISPLACED,
     DEVICE_CLASS_PROBLEM,
     ENTITY_CATEGORY_DIAGNOSTIC,
     ICON_ACCOUNT,
@@ -33,6 +33,7 @@ MULTI_CONF = True
 
 CONF_SENSOR_POWER_PIN = "sensor_power_pin"
 CONF_IDLE_PERIOD_TO_SLEEP = "idle_period_to_sleep"
+CONF_AUTO_LED_OFF = "auto_led_off"
 CONF_ERROR = "error"
 CONF_ON_FINGER_SCAN_FAILED = "on_finger_scan_failed"
 CONF_ROLE = "role"
@@ -95,6 +96,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_SENSOR_POWER_PIN): pins.internal_gpio_output_pin_schema,
             cv.Optional(CONF_SENSING_PIN): pins.internal_gpio_input_pin_schema,
             cv.Optional(CONF_IDLE_PERIOD_TO_SLEEP): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_AUTO_LED_OFF, default=False): cv.boolean,
             cv.Optional(CONF_ERROR): cv.maybe_simple_value(
                 binary_sensor.binary_sensor_schema(
                     device_class=DEVICE_CLASS_PROBLEM,
@@ -135,9 +137,9 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_ON_FINGER_SCAN_UNMATCHED): automation.validate_automation({
                 cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ZwScanUnmatchedTrigger)
             }),
-            # cv.Optional(CONF_ON_FINGER_SCAN_MISPLACED): automation.validate_automation({
-            #     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ZwScanMisplacedTrigger)
-            # }),
+            cv.Optional(CONF_ON_FINGER_SCAN_MISPLACED): automation.validate_automation({
+                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ZwScanMisplacedTrigger)
+            }),
             cv.Optional(CONF_ON_FINGER_SCAN_FAILED): automation.validate_automation({
                 cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ZwScanFailedTrigger)
             }),
@@ -195,9 +197,9 @@ async def to_code(config):
     if sensing_pin_config := config.get(CONF_SENSING_PIN):
         sensing_pin = await cg.gpio_pin_expression(sensing_pin_config)
         cg.add(var.set_sensing_pin(sensing_pin))
-    if CONF_IDLE_PERIOD_TO_SLEEP in config:
-        idle_period_to_sleep_ms = config[CONF_IDLE_PERIOD_TO_SLEEP]
-        cg.add(var.set_idle_period_to_sleep_ms(idle_period_to_sleep_ms))
+    for key in [CONF_IDLE_PERIOD_TO_SLEEP, CONF_AUTO_LED_OFF]:
+        if var_config := config.get(key):
+            cg.add(getattr(var, f"set_{key}")(var_config))
     if error_config := config.get(CONF_ERROR):
         sens = await binary_sensor.new_binary_sensor(error_config)
         cg.add(var.set_error_sensor(sens))
@@ -215,9 +217,9 @@ async def to_code(config):
     for conf in config.get(CONF_ON_FINGER_SCAN_UNMATCHED, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)
-    # for conf in config.get(CONF_ON_FINGER_SCAN_MISPLACED, []):
-    #     trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-    #     await automation.build_automation(trigger, [], conf)
+    for conf in config.get(CONF_ON_FINGER_SCAN_MISPLACED, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [], conf)
     for conf in config.get(CONF_ON_FINGER_SCAN_FAILED, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(cg.uint8, "error_code")], conf)
@@ -253,7 +255,6 @@ async def set_color_action_to_code(config, action_id, template_arg, args):
     await cg.register_parented(var, config[CONF_ID])
     cg.add(var.set_state(await cg.templatable(config[CONF_STATE], args, ZwAuraLEDState)))
     cg.add(var.set_color(await cg.templatable(config[CONF_COLOR], args, ZwAuraLEDColor)))
-    # cg.add(var.set_end(await cg.templatable(config[CONF_COLOR_END], args, ZwLightColor)))
     cg.add(var.set_count(await cg.templatable(config[CONF_COUNT], args, cg.uint8)))
     return var
 

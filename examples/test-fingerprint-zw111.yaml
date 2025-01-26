@@ -34,7 +34,8 @@ fingerprint_zw:
   # uart_id: uart_for_zw111
   # sensor_power_pin: D5
   sensing_pin: D2
-  idle_period_to_sleep: 200ms
+  idle_period_to_sleep: 1s
+  auto_led_off: true
   error: "Fingerprint Error"
   fingerprint_count: "Fingerprint Count"
   capacity: "Fingerprint Capacity"
@@ -51,21 +52,28 @@ fingerprint_zw:
     - fingerprint_zw.aura_led_control:
         state: FLASHING
         color: GREEN
-        count: 3
+        # count: 3
   on_finger_scan_unmatched:
     - lambda: |-
         ESP_LOGI("lambda", "Fingerprint scanning finished with unknown fingerprint");
     - fingerprint_zw.aura_led_control:
         state: FLASHING
         color: RED
-        count: 3
+        # count: 3
+  on_finger_scan_misplaced:
+    - lambda: |-
+        ESP_LOGI("lambda", "Fingerprint misplaced");
+    - fingerprint_zw.aura_led_control:
+        state: FLASHING
+        color: WHITE
+        # count: 3
   on_finger_scan_failed:
     - lambda: |-
         ESP_LOGW("lambda", "Fingerprint scanning failed with code %d", error_code);
     - fingerprint_zw.aura_led_control:
         state: FLASHING
         color: PURPLE
-        count: 3
+        # count: 3
 
 button:
   - platform: restart

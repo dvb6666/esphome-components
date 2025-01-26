@@ -148,7 +148,8 @@ class ZwComponent : public Component, public uart::UARTDevice {
   void loop() override;
   void set_sensor_power_pin(InternalGPIOPin *pin) { this->sensor_power_pin_ = pin; }
   void set_sensing_pin(InternalGPIOPin *pin) { this->sensing_pin_ = pin; }
-  void set_idle_period_to_sleep_ms(uint32_t period_ms) { this->idle_period_to_sleep_ms_ = period_ms; }
+  void set_idle_period_to_sleep(uint32_t period_ms) { this->idle_period_to_sleep_ms_ = period_ms; }
+  void set_auto_led_off(bool led_off) { this->auto_led_off_ = led_off; }
   void set_error_sensor(binary_sensor::BinarySensor *sensor) { this->error_sensor_ = sensor; }
   void set_fingerprint_count_sensor(sensor::Sensor *sensor) { this->fingerprint_count_sensor_ = sensor; }
   void set_last_finger_id_sensor(sensor::Sensor *sensor) { this->last_finger_id_sensor_ = sensor; }
@@ -189,6 +190,7 @@ class ZwComponent : public Component, public uart::UARTDevice {
   binary_sensor::BinarySensor *error_sensor_{nullptr};
   sensor::Sensor *fingerprint_count_sensor_{nullptr}, *last_finger_id_sensor_{nullptr}, *capacity_sensor_{nullptr};
   uint32_t idle_period_to_sleep_ms_{0};
+  bool auto_led_off_{false}, need_led_off_{false};
   std::queue<std::unique_ptr<ZwCommand>> commands_queue_;
   bool last_touch_state_{false}, running_{false}, error_{false};
   char module_id_[2 * SERIAL_NUMBER_SIZE + 1] = {};

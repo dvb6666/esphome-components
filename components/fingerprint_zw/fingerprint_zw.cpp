@@ -14,6 +14,7 @@ static const char *DIGITS = "0123456789ABCDEF";
 
 void ZwComponent::start_scan() {
   ESP_LOGD(TAG, "Start scan batch");
+  this->need_led_off_ = this->auto_led_off_;
   if (this->finger_scan_start_callback_.size() > 0) {
     ESP_LOGV(TAG, "Executing on_finger_scan_start");
     this->finger_scan_start_callback_.call();
@@ -80,9 +81,12 @@ void ZwComponent::setup() {
   while (this->available())
     this->read();
   // request module ID and fingerprints count on start
+  if (this->auto_led_off_)
+    aura_led_control(fingerprint_zw::BREATHING, fingerprint_zw::OFF);
   get_serial_number();
   get_module_parameters();
   get_fingerprints_count();
+  delay(500);  // delay 0.5s after setup
 }
 
 void ZwComponent::dump_config() {
@@ -102,12 +106,25 @@ void ZwComponent::dump_config() {
   } else {
     ESP_LOGCONFIG(TAG, "  Idle Period to Sleep: Never");
   }
+  ESP_LOGCONFIG(TAG, "  Auto LED Off: %s", this->auto_led_off_ ? "Yes" : "No");
   if (this->error_sensor_)
     LOG_BINARY_SENSOR("  ", "Error Sensor: ", this->error_sensor_);
-  if (this->fingerprint_count_sensor_)
-    LOG_SENSOR("  ", "Fingerprints Count Sensor: ", this->fingerprint_count_sensor_);
-  if (this->last_finger_id_sensor_)
-    LOG_SENSOR("  ", "Last Fingerprint ID Sensor: ", this->last_finger_id_sensor_);
+  if (this->fingerprint_count_sensor_) {
+    LOG_SENSOR("  ", "Fingerprint Count", this->fingerprint_count_sensor_);
+    ESP_LOGCONFIG(
+        TAG, "    Current Value: %d",
+        this->fingerprint_count_sensor_->has_state() ? (int) this->fingerprint_count_sensor_->get_state() : -1);
+  }
+  if (this->capacity_sensor_) {
+    LOG_SENSOR("  ", "Capacity", this->capacity_sensor_);
+    ESP_LOGCONFIG(TAG, "    Current Value: %d",
+                  this->capacity_sensor_->has_state() ? (int) this->capacity_sensor_->get_state() : -1);
+  }
+  if (this->last_finger_id_sensor_) {
+    LOG_SENSOR("  ", "Last Finger ID", this->last_finger_id_sensor_);
+    ESP_LOGCONFIG(TAG, "    Current Value: %d",
+                  this->last_finger_id_sensor_->has_state() ? (int) this->last_finger_id_sensor_->get_state() : -1);
+  }
 }
 
 void ZwComponent::loop() {
@@ -135,6 +152,14 @@ void ZwComponent::loop() {
     if (command == nullptr || this->process_command(command.get())) {
       this->commands_queue_.pop();
       this->phase_ = 0;
+      // if all commands completed, add led-off command if option 'auto_led_off' is enabled
+      if (this->commands_queue_.empty() && this->need_led_off_) {
+        ESP_LOGV(TAG, "Delay %dms before led off", this->idle_period_to_sleep_ms_);
+        this->need_led_off_ = false;
+        aura_led_control(fingerprint_zw::BREATHING, fingerprint_zw::OFF);
+        delay(this->idle_period_to_sleep_ms_);
+        return;
+      }
       // if all commands completed sleep before power-off sensor
       if (this->commands_queue_.empty() && this->idle_period_to_sleep_ms_ > 0 && this->sensor_power_pin_) {
         ESP_LOGV(TAG, "Delay %dms before setting sensor_power_pin(%d) to state 'power-off'",
@@ -473,13 +498,9 @@ bool ZwComponent::process_error(ZwCommand *command, uint8_t error_code) {
         } else {
           ESP_LOGV(TAG, "No callback on_finger_scan_unmatched");
         }
-      } else if (1 == 0) {  // TODO for misplace handling
-        if (this->finger_scan_misplaced_callback_.size() > 0) {
-          ESP_LOGV(TAG, "Executing on_finger_scan_misplaced");
-          this->finger_scan_misplaced_callback_.call();
-        } else {
-          ESP_LOGV(TAG, "No callback on_finger_scan_misplaced");
-        }
+      } else if (error_code == 0x02 && this->finger_scan_misplaced_callback_.size() > 0) {
+        ESP_LOGD(TAG, "No finger");
+        this->finger_scan_misplaced_callback_.call();
       } else {
         if (this->finger_scan_failed_callback_.size() > 0) {
           ESP_LOGV(TAG, "Executing on_finger_scan_failed(%d)", error_code);
@@ -490,10 +511,13 @@ bool ZwComponent::process_error(ZwCommand *command, uint8_t error_code) {
       }
     } break;
 
+    case PS_GetChipSN:
     case PS_ReadlNFpage: {
       if (++this->retry_count_ < 3) {
-        ESP_LOGV(TAG, "Error on PS_ReadlNFpage command. Doing retry %d...", this->retry_count_);
-        get_flash_parameters();
+        ESP_LOGD(TAG, "Error on command %02x. Doing retry %d...", command->code, this->retry_count_);
+        // restart command
+        this->phase_ = 0;
+        return false;
       }
     } break;
 
