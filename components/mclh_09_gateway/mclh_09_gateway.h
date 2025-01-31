@@ -210,7 +210,11 @@ public:
       serv_alert->set_service_uuid16(0x1802ULL);
       serv_alert->set_char_uuid16(0x2A06ULL);
       serv_alert->set_skip_empty();
+#if (__cplusplus >= 202002L)
+      serv_alert->set_value_template([=, this]() -> std::vector<uint8_t> {
+#else
       serv_alert->set_value_template([=]() -> std::vector<uint8_t> {
+#endif
         size_t index = (alert_select[i]->active_index()).value_or(0);
         size_t prev_value = alert_value[i];
         if (index >= 4) {
@@ -235,19 +239,31 @@ public:
 
       // автоматизации
       (new Automation<std::string, size_t>(new select::SelectStateTrigger(alert_select[i])))
+#if (__cplusplus >= 202002L)
+          ->add_actions({new LambdaAction<std::string, size_t>([=, this](std::string x, size_t sz) -> void { ble_client[i]->force_update(); })});
+#else
           ->add_actions({new LambdaAction<std::string, size_t>([=](std::string x, size_t sz) -> void { ble_client[i]->force_update(); })});
+#endif
 
       (new Automation<int, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
            new myhomeiot_ble_client2::MyHomeIOT_BLEClientConnectTrigger(ble_client[i])))
           ->add_actions({new LambdaAction<int, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+#if (__cplusplus >= 202002L)
+              [=, this](int rssi, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
+#else
               [=](int rssi, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
+#endif
                 rssi_sensor[i]->publish_state(rssi);
               })});
 
       (new Automation<std::vector<uint8_t>, int, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
            new myhomeiot_ble_client2::MyHomeIOT_BLEClientValueTrigger(ble_client[i])))
           ->add_actions({new LambdaAction<std::vector<uint8_t>, int, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+#if (__cplusplus >= 202002L)
+              [=, this](std::vector<uint8_t> x, int service, bool &stop_processing,
+#else
               [=](std::vector<uint8_t> x, int service, bool &stop_processing,
+#endif
                   const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
                 if (service == 1) {
                   batt_sensor[i]->publish_state(x[0]);
@@ -268,7 +284,11 @@ public:
         (new Automation<uint32_t, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
              new myhomeiot_ble_client2::MyHomeIOT_BLEClientErrorTrigger(ble_client[i])))
             ->add_actions({new LambdaAction<uint32_t, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
+#if (__cplusplus >= 202002L)
+                [=, this](uint32_t error_count, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
+#else
                 [=](uint32_t error_count, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
+#endif
                   error_sensor[i]->publish_state(error_count);
                 })});
       }
