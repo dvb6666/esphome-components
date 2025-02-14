@@ -30,7 +30,7 @@ class AquaWatchmanValve : public valve::Valve, public Component {
   void loop() override;
 
   void set_alarm_pin(InternalGPIOPin *pin) { this->alarm_pin_ = pin; }
-  void set_no_buttons_check(bool value) { this->no_buttons_check_ = value; }
+  void set_ignore_buttons(bool value) { this->ignore_buttons_ = value; }
   bool alarm_{false};  // TODO bad workaround for alarm action
 
  protected:
@@ -44,7 +44,7 @@ class AquaWatchmanValve : public valve::Valve, public Component {
   std::queue<std::unique_ptr<AquaWatchmanCommand>> queue_;
   unsigned long sleep_time_{0};
   uint16_t phase_{0};
-  bool previous_close_value_{false}, previous_open_value_{false}, no_buttons_check_{false};
+  bool previous_close_value_{false}, previous_open_value_{false}, ignore_buttons_{false};
 };
 
 template<typename... Ts> class AquaWatchmanAlarmAction : public Action<Ts...> {

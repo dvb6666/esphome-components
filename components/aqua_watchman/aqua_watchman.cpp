@@ -39,6 +39,7 @@ void AquaWatchmanValve::dump_config() {
   LOG_PIN("  Open Pin: ", this->open_pin_);
   if (this->alarm_pin_)
     LOG_PIN("  Alarm Pin: ", this->alarm_pin_);
+  ESP_LOGCONFIG(TAG, "  Ignore Buttons: %s", YESNO(this->ignore_buttons_));
 }
 
 void AquaWatchmanValve::loop() {
@@ -97,8 +98,8 @@ void AquaWatchmanValve::loop() {
     return;
   }
 
-  // skip buttons state check when option "no_buttons_check" set
-  if (this->no_buttons_check_)
+  // skip buttons state check when option "ignore_buttons" set
+  if (this->ignore_buttons_)
     return;
 
   // check if pressed device button OPEN

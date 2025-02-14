@@ -15,7 +15,7 @@ DEPENDENCIES = ["valve"]
 CONF_CLOSE_PIN = "close_pin"
 CONF_OPEN_PIN = "open_pin"
 CONF_ALARM_PIN = "alarm_pin"
-CONF_NO_BUTTONS_CHECK = "no_buttons_check"
+CONF_IGNORE_BUTTONS = "ignore_buttons"
 
 aqua_watchman_ns = cg.esphome_ns.namespace("aqua_watchman")
 AquaWatchmanValve = aqua_watchman_ns.class_("AquaWatchmanValve", valve.Valve, cg.Component)
@@ -27,7 +27,7 @@ CONFIG_SCHEMA = valve.VALVE_SCHEMA.extend(
         cv.Required(CONF_CLOSE_PIN): pins.internal_gpio_input_pin_schema,
         cv.Required(CONF_OPEN_PIN): pins.internal_gpio_input_pin_schema,
         cv.Optional(CONF_ALARM_PIN): pins.internal_gpio_input_pin_schema,
-        cv.Optional(CONF_NO_BUTTONS_CHECK, default=False): cv.boolean,
+        cv.Optional(CONF_IGNORE_BUTTONS, default=False): cv.boolean,
         cv.Optional(CONF_DEVICE_CLASS, default=DEVICE_CLASS_WATER): cv.one_of(*valve.DEVICE_CLASSES, lower=True, space="_"),
     }
 ).extend(cv.COMPONENT_SCHEMA)
@@ -51,7 +51,7 @@ async def to_code(config):
     if alarm_pin_config := config.get(CONF_ALARM_PIN):
         alarm_pin = await cg.gpio_pin_expression(alarm_pin_config)
         cg.add(var.set_alarm_pin(alarm_pin))
-    cg.add(var.set_no_buttons_check(config[CONF_NO_BUTTONS_CHECK]))
+    cg.add(var.set_ignore_buttons(config[CONF_IGNORE_BUTTONS]))
 
 @automation.register_action("valve.aqua_watchman.alarm", AquaWatchmanAlarmAction, valve.VALVE_ACTION_SCHEMA)
 async def aqua_watchman_alarm_to_code(config, action_id, template_arg, args):
