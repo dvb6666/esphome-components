@@ -5,6 +5,7 @@
 #include "esphome/core/application.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
+#include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/valve/valve.h"
 #include <memory>
 #include <queue>
@@ -29,9 +30,10 @@ class AquaWatchmanValve : public valve::Valve, public Component {
   void dump_config() override;
   void loop() override;
 
+  void send_alarm_command();
   void set_alarm_pin(InternalGPIOPin *pin) { this->alarm_pin_ = pin; }
+  void set_floor_cleaning_sensor(binary_sensor::BinarySensor *sensor) { this->floor_cleaning_sensor_ = sensor; }
   void set_ignore_buttons(bool value) { this->ignore_buttons_ = value; }
-  bool alarm_{false};  // TODO bad workaround for alarm action
 
  protected:
   void control(const valve::ValveCall &call) override;
@@ -40,21 +42,20 @@ class AquaWatchmanValve : public valve::Valve, public Component {
 
  private:
   InternalGPIOPin *close_pin_, *open_pin_, *alarm_pin_{nullptr};
+  binary_sensor::BinarySensor *floor_cleaning_sensor_{nullptr};
   valve::ValveTraits traits_{};
   std::queue<std::unique_ptr<AquaWatchmanCommand>> queue_;
   unsigned long sleep_time_{0};
   uint16_t phase_{0};
-  bool previous_close_value_{false}, previous_open_value_{false}, ignore_buttons_{false};
+  bool previous_close_value_{false}, previous_open_value_{false}, floor_cleaning_state_{false};
+  bool ignore_buttons_{false};
+  bool alarm_{false};  // TODO bad workaround for alarm action
 };
 
 template<typename... Ts> class AquaWatchmanAlarmAction : public Action<Ts...> {
  public:
   explicit AquaWatchmanAlarmAction(AquaWatchmanValve *valve) : valve_(valve) {}
-
-  void play(Ts... x) override {
-    this->valve_->alarm_ = true;
-    this->valve_->make_call().set_command_close().perform();
-  }
+  void play(Ts... x) override { this->valve_->send_alarm_command(); }
 
  protected:
   AquaWatchmanValve *valve_;

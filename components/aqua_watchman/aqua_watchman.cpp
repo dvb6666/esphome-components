@@ -21,7 +21,6 @@ AquaWatchmanValve::AquaWatchmanValve(InternalGPIOPin *close_pin, InternalGPIOPin
   this->traits_.set_supports_toggle(false);
 }
 
-// #define OPEN_PIN 5
 void AquaWatchmanValve::setup() {
   ESP_LOGCONFIG(TAG, "Setting up...");
   this->close_pin_->setup();
@@ -31,6 +30,11 @@ void AquaWatchmanValve::setup() {
   this->position = 0.5f;
   this->current_operation = VALVE_OPERATION_IDLE;
   this->publish_state(false);
+  if (this->alarm_pin_) {
+    this->floor_cleaning_state_ = this->alarm_pin_->digital_read() == this->alarm_pin_->is_inverted();
+    if (this->floor_cleaning_sensor_)
+      this->floor_cleaning_sensor_->publish_state(this->floor_cleaning_state_);
+  }
 }
 
 void AquaWatchmanValve::dump_config() {
@@ -39,6 +43,8 @@ void AquaWatchmanValve::dump_config() {
   LOG_PIN("  Open Pin: ", this->open_pin_);
   if (this->alarm_pin_)
     LOG_PIN("  Alarm Pin: ", this->alarm_pin_);
+  if (this->floor_cleaning_sensor_)
+    LOG_BINARY_SENSOR("  ", "Floor Cleaning Sensor: ", this->floor_cleaning_sensor_);
   ESP_LOGCONFIG(TAG, "  Ignore Buttons: %s", YESNO(this->ignore_buttons_));
 }
 
@@ -51,6 +57,13 @@ void AquaWatchmanValve::loop() {
   // process OPEN/CLOSE/ALARM commands
   if (!this->queue_.empty()) {
     auto &command = this->queue_.front();
+    // check for NULL
+    if (command == nullptr) {
+      ESP_LOGW(TAG, "Null command in queue");
+      this->queue_.pop();
+      return;
+    }
+    // define pin and process all phases
     auto pin = PIN_PTR(command->code);
     switch (++this->phase_) {
       case 1: {
@@ -62,17 +75,17 @@ void AquaWatchmanValve::loop() {
 
       case 2: {
         if (!command->silent) {
-          ESP_LOGV(TAG, "Setting %s pin to ON", PIN_NAME(command->code));
+          ESP_LOGV(TAG, "Setting %s pin (%d) to ON", PIN_NAME(command->code), pin->get_pin());
           // pin->digital_write(pin->is_inverted());
           pin->pin_mode(gpio::FLAG_OUTPUT);
           pin->digital_write(pin->is_inverted());
         }
-        delay(400);
+        delay(command->code == ALARM ? 900 : 400);
       } break;
 
       case 3: {
         if (!command->silent) {
-          ESP_LOGV(TAG, "Setting %s pin to OFF", PIN_NAME(command->code));
+          ESP_LOGV(TAG, "Setting %s pin (%d) to OFF", PIN_NAME(command->code), pin->get_pin());
           pin->digital_write(!pin->is_inverted());
         }
         delay(100);
@@ -131,6 +144,27 @@ void AquaWatchmanValve::loop() {
       return;
     }
   }
+
+  // check alarm pin
+  if (this->alarm_pin_) {
+    this->floor_cleaning_state_ = this->alarm_pin_->digital_read() == this->alarm_pin_->is_inverted();
+    if (this->floor_cleaning_state_ != this->floor_cleaning_sensor_->state) {
+      ESP_LOGV(TAG, "Alarm pin state changed to %s", this->floor_cleaning_state_ ? "true" : "false");
+      if (this->floor_cleaning_sensor_)
+        this->floor_cleaning_sensor_->publish_state(this->floor_cleaning_state_);
+    }
+  }
+}
+
+void AquaWatchmanValve::send_alarm_command() {
+  this->alarm_ = true;
+  if (!this->alarm_pin_)
+    ESP_LOGW(TAG, "Alarm pin not set!");
+  else if (this->floor_cleaning_state_) {
+    ESP_LOGW(TAG, "Can't alarm coz floor mode enabled!");
+    this->alarm_ = false;
+  }
+  this->make_call().set_command_close().perform();
 }
 
 void AquaWatchmanValve::control(const ValveCall &call) {
