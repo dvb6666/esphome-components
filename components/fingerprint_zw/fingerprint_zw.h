@@ -170,13 +170,13 @@ class ZwComponent : public Component, public uart::UARTDevice {
   void add_on_finger_scan_failed_callback(std::function<void(uint8_t)> callback) {
     this->finger_scan_failed_callback_.add(std::move(callback));
   }
-  void add_on_Register_start_callback(std::function<void(uint8_t)> callback) {
+  void add_on_register_start_callback(std::function<void(uint8_t)> callback) {
     this->register_start_callback_.add(std::move(callback));
   }
-  void add_on_Register_done_callback(std::function<void(uint8_t, uint16_t)> callback) {
+  void add_on_register_done_callback(std::function<void(uint8_t, uint16_t)> callback) {
     this->register_done_callback_.add(std::move(callback));
   }
-  void add_on_Register_failed_callback(std::function<void(uint8_t)> callback) {
+  void add_on_register_failed_callback(std::function<void(uint8_t)> callback) {
     this->register_failed_callback_.add(std::move(callback));
   }
 
@@ -253,21 +253,21 @@ class ZwScanFailedTrigger : public Trigger<uint8_t> {
 class ZwRegisterStartTrigger : public Trigger<uint8_t> {
  public:
   explicit ZwRegisterStartTrigger(ZwComponent *parent) {
-    parent->add_on_Register_start_callback([this](uint8_t step) { this->trigger(step); });
+    parent->add_on_register_start_callback([this](uint8_t step) { this->trigger(step); });
   }
 };
 
 class ZwRegisterDoneTrigger : public Trigger<uint8_t, uint16_t> {
  public:
   explicit ZwRegisterDoneTrigger(ZwComponent *parent) {
-    parent->add_on_Register_done_callback([this](uint8_t step, uint16_t finger_id) { this->trigger(step, finger_id); });
+    parent->add_on_register_done_callback([this](uint8_t step, uint16_t finger_id) { this->trigger(step, finger_id); });
   }
 };
 
 class ZwRegisterFailedTrigger : public Trigger<uint8_t> {
  public:
   explicit ZwRegisterFailedTrigger(ZwComponent *parent) {
-    parent->add_on_Register_failed_callback([this](uint8_t error_code) { this->trigger(error_code); });
+    parent->add_on_register_failed_callback([this](uint8_t error_code) { this->trigger(error_code); });
   }
 };
 

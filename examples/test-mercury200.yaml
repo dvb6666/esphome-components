@@ -16,7 +16,8 @@ logger:
 api:
 
 ota:
-  password: !secret ota_password
+  - platform: esphome
+    password: !secret ota_password
 
 wifi:
   ssid: !secret wifi_ssid
@@ -46,20 +47,13 @@ mercury200:
   # dir_pin: 5
   all_commands: true
   startup_delay: 20s
-  voltage:
-    name: Voltage
-  current:
-    name: Current
-  power:
-    name: Power
-  energy1:
-    name: Energy1
-  energy2:
-    name: Energy2
-  battery_voltage:
-    name: Battery
-  error:
-    name: Error
+  voltage: Voltage
+  current: Current
+  power: Power
+  energy1: Energy1
+  energy2: Energy2
+  battery_voltage: Battery
+  error: Error
 
 button:
   - platform: restart

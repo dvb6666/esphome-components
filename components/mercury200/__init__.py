@@ -6,6 +6,7 @@ from esphome.components import sensor
 from esphome.components import uart
 from esphome.const import (
     CONF_ID,
+    CONF_NAME,
     CONF_UART_ID,
     CONF_ADDRESS,
     CONF_DIR_PIN,
@@ -49,44 +50,44 @@ SCHEMA_ATTRS = {
     cv.Optional(CONF_ALL_COMMANDS, default=False): cv.boolean,
     cv.Optional(CONF_DIR_PIN): pins.gpio_output_pin_schema,
     cv.Optional(CONF_STARTUP_DELAY, default="10s"): cv.positive_time_period_milliseconds,
-    cv.Optional(CONF_VOLTAGE): sensor.sensor_schema(
+    cv.Optional(CONF_VOLTAGE): cv.maybe_simple_value(sensor.sensor_schema(
         unit_of_measurement=UNIT_VOLT,
         accuracy_decimals=1,
         device_class=DEVICE_CLASS_VOLTAGE,
         state_class=STATE_CLASS_MEASUREMENT,
-    ),
-    cv.Optional(CONF_CURRENT): sensor.sensor_schema(
+    ), key=CONF_NAME),
+    cv.Optional(CONF_CURRENT): cv.maybe_simple_value(sensor.sensor_schema(
         unit_of_measurement=UNIT_AMPERE,
         accuracy_decimals=2,
         device_class=DEVICE_CLASS_CURRENT,
         state_class=STATE_CLASS_MEASUREMENT,
-    ),
-    cv.Optional(CONF_POWER): sensor.sensor_schema(
+    ), key=CONF_NAME),
+    cv.Optional(CONF_POWER): cv.maybe_simple_value(sensor.sensor_schema(
         unit_of_measurement=UNIT_WATT,
         device_class=DEVICE_CLASS_POWER,
         state_class=STATE_CLASS_MEASUREMENT,
-    ),
+    ), key=CONF_NAME),
 
-    cv.Optional(CONF_BATTERY_VOLTAGE): sensor.sensor_schema(
+    cv.Optional(CONF_BATTERY_VOLTAGE): cv.maybe_simple_value(sensor.sensor_schema(
         unit_of_measurement=UNIT_VOLT,
         accuracy_decimals=2,
         device_class=DEVICE_CLASS_VOLTAGE,
         state_class=STATE_CLASS_MEASUREMENT,
         entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-    ),
-    cv.Optional(CONF_ERROR): binary_sensor.binary_sensor_schema(
+    ), key=CONF_NAME),
+    cv.Optional(CONF_ERROR): cv.maybe_simple_value(binary_sensor.binary_sensor_schema(
         device_class=DEVICE_CLASS_PROBLEM,
         entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-    ),
+    ), key=CONF_NAME),
 }
 
 for conf_id in CONF_ENERGY:
-    SCHEMA_ATTRS[cv.Optional(conf_id)] = sensor.sensor_schema(
+    SCHEMA_ATTRS[cv.Optional(conf_id)] = cv.maybe_simple_value(sensor.sensor_schema(
         unit_of_measurement=UNIT_KILOWATT_HOURS,
         accuracy_decimals=2,
         device_class=DEVICE_CLASS_ENERGY,
         state_class=STATE_CLASS_TOTAL_INCREASING,
-    )
+    ), key=CONF_NAME)
 
 
 CONFIG_SCHEMA = cv.Schema(SCHEMA_ATTRS).extend(cv.polling_component_schema("60s")).extend(uart.UART_DEVICE_SCHEMA)
