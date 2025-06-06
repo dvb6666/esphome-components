@@ -25,16 +25,22 @@ void AquaWatchmanValve::setup() {
   ESP_LOGCONFIG(TAG, "Setting up...");
   this->close_pin_->setup();
   this->open_pin_->setup();
-  if (this->alarm_pin_)
-    this->alarm_pin_->setup();
-  this->position = 0.5f;
-  this->current_operation = VALVE_OPERATION_IDLE;
-  this->publish_state(false);
   if (this->alarm_pin_) {
+    this->alarm_pin_->setup();
     this->floor_cleaning_state_ = this->alarm_pin_->digital_read() == this->alarm_pin_->is_inverted();
     if (this->floor_cleaning_sensor_)
       this->floor_cleaning_sensor_->publish_state(this->floor_cleaning_state_);
   }
+  if (this->power_pin_) {
+    this->power_pin_->setup();
+    this->power_state_ = this->power_pin_->digital_read() == this->power_pin_->is_inverted();
+    if (this->power_sensor_)
+      this->power_sensor_->publish_state(this->power_state_);
+  }
+
+  this->position = 0.5f;
+  this->current_operation = VALVE_OPERATION_IDLE;
+  this->publish_state(false);
 }
 
 void AquaWatchmanValve::dump_config() {
@@ -43,8 +49,12 @@ void AquaWatchmanValve::dump_config() {
   LOG_PIN("  Open Pin: ", this->open_pin_);
   if (this->alarm_pin_)
     LOG_PIN("  Alarm Pin: ", this->alarm_pin_);
+  if (this->power_pin_)
+    LOG_PIN("  Power Pin: ", this->power_pin_);
   if (this->floor_cleaning_sensor_)
     LOG_BINARY_SENSOR("  ", "Floor Cleaning Sensor: ", this->floor_cleaning_sensor_);
+  if (this->power_sensor_)
+    LOG_BINARY_SENSOR("  ", "Power Sensor: ", this->power_sensor_);
   ESP_LOGCONFIG(TAG, "  Ignore Buttons: %s", YESNO(this->ignore_buttons_));
 }
 
@@ -111,7 +121,16 @@ void AquaWatchmanValve::loop() {
     return;
   }
 
-  // skip buttons state check when option "ignore_buttons" set
+  // check power pin state only when no command executing (because on Opening command it changes its state to LOW for short time)
+  if (this->queue_.empty() && this->power_pin_ && this->power_sensor_) {
+    this->power_state_ = this->power_pin_->digital_read() == this->power_pin_->is_inverted();
+    if (this->power_state_ != this->power_sensor_->state) {
+      ESP_LOGV(TAG, "Power state changed to %s", this->power_state_ ? "true" : "false");
+      this->power_sensor_->publish_state(this->power_state_);
+    }
+  }
+
+  // skip buttons state check when option "ignore_buttons" is set
   if (this->ignore_buttons_)
     return;
 
@@ -146,12 +165,11 @@ void AquaWatchmanValve::loop() {
   }
 
   // check alarm pin
-  if (this->alarm_pin_) {
+  if (this->alarm_pin_ && this->floor_cleaning_sensor_) {
     this->floor_cleaning_state_ = this->alarm_pin_->digital_read() == this->alarm_pin_->is_inverted();
     if (this->floor_cleaning_state_ != this->floor_cleaning_sensor_->state) {
       ESP_LOGV(TAG, "Alarm pin state changed to %s", this->floor_cleaning_state_ ? "true" : "false");
-      if (this->floor_cleaning_sensor_)
-        this->floor_cleaning_sensor_->publish_state(this->floor_cleaning_state_);
+      this->floor_cleaning_sensor_->publish_state(this->floor_cleaning_state_);
     }
   }
 }

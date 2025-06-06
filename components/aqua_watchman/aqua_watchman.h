@@ -32,7 +32,9 @@ class AquaWatchmanValve : public valve::Valve, public Component {
 
   void send_alarm_command();
   void set_alarm_pin(InternalGPIOPin *pin) { this->alarm_pin_ = pin; }
+  void set_power_pin(InternalGPIOPin *pin) { this->power_pin_ = pin; }
   void set_floor_cleaning_sensor(binary_sensor::BinarySensor *sensor) { this->floor_cleaning_sensor_ = sensor; }
+  void set_power_sensor(binary_sensor::BinarySensor *sensor) { this->power_sensor_ = sensor; }
   void set_ignore_buttons(bool value) { this->ignore_buttons_ = value; }
 
  protected:
@@ -41,13 +43,13 @@ class AquaWatchmanValve : public valve::Valve, public Component {
   void delay(uint32_t ms) { this->sleep_time_ = millis() + ms; }
 
  private:
-  InternalGPIOPin *close_pin_, *open_pin_, *alarm_pin_{nullptr};
-  binary_sensor::BinarySensor *floor_cleaning_sensor_{nullptr};
+  InternalGPIOPin *close_pin_, *open_pin_, *alarm_pin_{nullptr}, *power_pin_{nullptr};
+  binary_sensor::BinarySensor *floor_cleaning_sensor_{nullptr}, *power_sensor_{nullptr};
   valve::ValveTraits traits_{};
   std::queue<std::unique_ptr<AquaWatchmanCommand>> queue_;
   unsigned long sleep_time_{0};
   uint16_t phase_{0};
-  bool previous_close_value_{false}, previous_open_value_{false}, floor_cleaning_state_{false};
+  bool previous_close_value_{false}, previous_open_value_{false}, floor_cleaning_state_{false}, power_state_{false};
   bool ignore_buttons_{false};
   bool alarm_{false};  // TODO bad workaround for alarm action
 };

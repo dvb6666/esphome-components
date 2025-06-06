@@ -1,0 +1,69 @@
+esphome:
+  name: "aqua-watchman"
+  friendly_name: "aqua-watchman"
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+logger:
+  # level: verbose
+api:
+ota:
+  - platform: esphome
+    password: !secret ota_password
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+
+valve:
+  - platform: aqua_watchman
+    name: Aqua Watchman
+    id: my_valve
+    ignore_buttons: false
+    close_pin:
+      number: 5
+      inverted: True
+    open_pin:
+      number: 6
+      inverted: True
+    alarm_pin:
+      number: 7
+      inverted: True
+    power_pin:
+      number: 10
+      inverted: True
+    floor_cleaning_sensor: Floor cleaning
+    power_sensor: Power
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+  - platform: template
+    name: Send Alarm
+    on_press:
+      - logger.log: Button Pressed
+      - valve.aqua_watchman.alarm: my_valve
+
+binary_sensor:
+  - platform: status
+    name: Status
+    entity_category: diagnostic
+
+sensor:
+  - platform: uptime
+    name: Uptime
+    entity_category: diagnostic
+  - platform: internal_temperature
+    name: "Internal Temperature"
+    entity_category: diagnostic
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    entity_category: diagnostic
+
+external_components:
+  - source: github://dvb6666/esphome-components
+    refresh: 1sec
+  - source: github://dvb6666/esphome
+    components: [ internal_temperature ]
