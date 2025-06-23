@@ -20,7 +20,7 @@ CONF_UPDATE_DELAY = "update_delay"
 stepper_cover_ns = cg.esphome_ns.namespace("stepper_cover_")
 StepperCover = stepper_cover_ns.class_("StepperCover", cover.Cover, cg.Component)
 
-CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
+CONFIG_SCHEMA = cover.cover_schema(StepperCover).extend(
     {
         cv.GenerateID(): cv.declare_id(StepperCover),
         cv.Required(CONF_STEPPER): cv.use_id(stepper.Stepper),

@@ -16,10 +16,9 @@ CONF_DEFAULT_TEMPERATURE = "default_temperature"
 
 climate_ir_samsung_ns = cg.esphome_ns.namespace("climate_ir_samsung")
 SamsungAC = climate_ir_samsung_ns.class_("SamsungAC", climate.Climate, cg.Component)
-IRSamsungAc = climate_ir_samsung_ns.class_("IRSamsungAc", cg.Component)
 
 CONFIG_SCHEMA = cv.All(
-    climate.CLIMATE_SCHEMA.extend(
+    climate.climate_schema(SamsungAC).extend(
         {
             cv.GenerateID(): cv.declare_id(SamsungAC),
             cv.Required(CONF_IR_LED): pins.internal_gpio_output_pin_schema,
@@ -33,7 +32,7 @@ CONFIG_SCHEMA = cv.All(
 
 async def to_code(config):
     ir_pin = await cg.gpio_pin_expression(config[CONF_IR_LED])
-    var = cg.new_Pvariable(config[CONF_ID], ir_pin, config[CONF_DEFAULT_TEMPERATURE], 
+    var = cg.new_Pvariable(config[CONF_ID], ir_pin, config[CONF_DEFAULT_TEMPERATURE],
                            config[CONF_MIN_TEMPERATURE], config[CONF_MAX_TEMPERATURE])
     await cg.register_component(var, config)
     await climate.register_climate(var, config)
