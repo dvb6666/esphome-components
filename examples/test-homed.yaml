@@ -29,7 +29,7 @@ mqtt:
   log_topic: null
   discover_ip: false
   homed_custom:
-    topic_prefix: homed319
+    # topic_prefix: homed319
     # device_id: test-homed
     # discovery: true
     # cloud: true
