@@ -1,0 +1,67 @@
+esphome:
+  name: test-homed
+  friendly_name: Test HOMEd Custom Device
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  # level: verbose
+# api:
+ota:
+  - platform: esphome
+    password: !secret ota_password
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+#  use_address: 192.168.1.81
+mdns:
+  disabled: true
+
+mqtt:
+  # id: mqtt_client_id
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pass
+  log_topic: null
+  discover_ip: false
+  homed_custom:
+    topic_prefix: homed319
+    # device_id: test-homed
+    # discovery: true
+    # cloud: true
+  
+binary_sensor:
+  - platform: status
+    name: Status
+    entity_category: diagnostic
+sensor:
+  - platform: uptime
+    name: Uptime
+    entity_category: diagnostic
+  - platform: internal_temperature
+    name: Internal temperature
+    entity_category: diagnostic
+switch:
+  - platform: gpio
+    name: Internal LED
+    pin: 2
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+  # - platform: template
+  #   name: Publish
+  #   entity_category: diagnostic
+  #   on_press:
+  #     - logger.log: Button Pressed
+  #     - lambda: |-
+  #         id(mqtt_client_id).publish_homed_custom();
+
+external_components:
+  - source: github://dvb6666/esphome
+    components: [ mqtt, internal_temperature ]
+    refresh: 1sec
