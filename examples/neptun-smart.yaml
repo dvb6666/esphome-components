@@ -29,7 +29,7 @@ mqtt:
   discover_ip: false
   # discovery: false
   homed_custom:
-    topic_prefix: homed319
+    # topic_prefix: homed319
     # discovery: true
 
 modbus_tcp:
