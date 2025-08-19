@@ -1,0 +1,86 @@
+esphome:
+  name: "modbus-gateway"
+  friendly_name: "modbus-gateway"
+  devices:
+    - id: neptun
+      name: "Neptun Smart"
+  # platformio_options:
+  #   build_flags: -Wno-sequence-point # for eps8266 to disable compiler warnings
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+api:
+ota:
+  - platform: esphome
+    password: !secret ota_password
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+
+modbus_tcp:
+  # id: modbus_id1
+  # IP-address of ESP32 module (NOT Tuya Smart module!!!) into Neptun Smart
+  ip_address: !secret neptun_ip
+  # port for Neptun Smart modbus service
+  port: 503
+  # raw data dump for debug
+  # raw_data: true
+
+neptun_smart:
+  device_id: neptun
+  # modbus_id: modbus_id1 # id of modbus_tcp entity
+  # update_interval: 10s # default update interval is 10 seconds
+  # binary sensor to signal if TCP connection lost
+  connection_status: Connection Status
+  # dual zone mode control; after changing NEED REBOOT Esp to show/hide zone2 controls
+  dual_zone_mode: Dual Zone
+  # zone valves state control
+  valve_zone_1: Zone 1
+  valve_zone_2: Zone 2
+  # binary sensors to signal zone alerts
+  alert_zone_1: Alert Zone 1
+  alert_zone_2: Alert Zone 2
+  # switches to control: floor washing mode, adding wireless sessor mode, close on wireless sensor lost, child lock
+  floor_washing_mode: Floor Washing
+  add_wireless_mode: Add Wireless Sensor
+  close_on_wireless_lost: Close On Wireless Lost
+  child_lock: Child Lock
+  # binary sensors to signal wireless sensor discharged and lost
+  wireless_sensor_discharged: Wireless Sensors Discharged
+  wireless_sensor_lost: Wireless Sensors Lost
+  # sensor to show wireless sensors count
+  wireless_sensors_count: Wireless Sensors
+  # binary sensors to signal wire line 1..4 leaks
+  wire_line_leak_1: Leak Toilet
+  wire_line_leak_4: Leak Kitchen
+  # water counters 1..8 values ("1" - 1st counter at slot1, ..., "8" - 2nd counter at slot4)
+  water_counter_1: Water Cold
+  water_counter_8: Water Hot
+
+# switch:
+#   - platform: template
+#     name: Stop MODBUS
+#     optimistic: True
+#     turn_on_action:
+#       - lambda: |-
+#           id(modbus_id1).stop();
+#     turn_off_action:
+#       - lambda: |-
+#           id(modbus_id1).start();
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+  # - platform: factory_reset
+  #   name: Factory reset
+  #   entity_category: diagnostic
+
+external_components:
+  - source: github://dvb6666/esphome-components
+    refresh: 1sec
