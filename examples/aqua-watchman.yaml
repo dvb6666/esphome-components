@@ -8,6 +8,10 @@ esp32:
 logger:
   # level: verbose
 api:
+  services:
+    - service: alarm
+      then:
+        - valve.aqua_watchman.alarm: my_valve
 ota:
   - platform: esphome
     password: !secret ota_password
