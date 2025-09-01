@@ -15,7 +15,8 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
 ota:
-  password: !secret ota_password_ble
+  - platform: esphome
+    password: !secret ota_password
 
 esp32_ble_tracker:
   scan_parameters:

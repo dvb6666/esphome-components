@@ -18,7 +18,8 @@ wifi:
   password: !secret wifi_password
   fast_connect: true
 ota:
-  password: !secret ota_password_ble
+  - platform: esphome
+    password: !secret ota_password
 
 mqtt:
   broker: !secret mqtt_host
