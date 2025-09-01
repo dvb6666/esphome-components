@@ -46,6 +46,23 @@ button:
       - mclh_09_gateway.force_update:
           id: my_mclh_09
 
+# Fake sensor to prevent error "has no member named 'register_sensor'"
+sensor:
+  - platform: template
+    name: "Template Sensor"
+    internal: true
+
+# Fake select to prevent error "has no member named 'register_select'"
+select:
+  - platform: template
+    name: "Template select"
+    optimistic: true
+    internal: true
+    options:
+      - one
+      - two
+    initial_option: two
+
 external_components:
   - source: github://myhomeiot/esphome-components
   - source: github://dvb6666/esphome-components
