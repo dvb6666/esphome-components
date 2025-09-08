@@ -62,6 +62,6 @@ button:
   #         id(mqtt_client_id).publish_homed_custom();
 
 external_components:
-  - source: github://dvb6666/esphome@homed
+  - source: github://dvb6666/esphome@homed-last
     components: [ mqtt, internal_temperature ]
     refresh: 1sec

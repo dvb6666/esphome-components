@@ -88,6 +88,6 @@ text_sensor:
 external_components:
   - source: github://dvb6666/esphome-components
     refresh: 1sec
-  - source: github://dvb6666/esphome@homed
+  - source: github://dvb6666/esphome@homed-last
     components: [ internal_temperature, mqtt]
     refresh: 1sec
