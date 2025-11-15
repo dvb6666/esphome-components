@@ -27,6 +27,9 @@ mqtt:
   password: !secret mqtt_pass
   topic_prefix: "esphome/devices/mclh09-gateway"
 
+esp32_ble:
+  max_connections: 5 # set acording your BLE devices
+
 esp32_ble_tracker:
   scan_parameters:
     interval: 1100ms

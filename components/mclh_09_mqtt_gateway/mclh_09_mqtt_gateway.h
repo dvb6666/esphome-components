@@ -124,7 +124,7 @@ public:
     serv_alert->set_service_uuid16(0x1802ULL);
     serv_alert->set_char_uuid16(0x2A06ULL);
     serv_alert->set_skip_empty();
-    serv_alert->set_value_template([=]() -> std::vector<uint8_t> {
+    serv_alert->set_value_template([=, this]() -> std::vector<uint8_t> {
       size_t index = this->alert_selected;
       size_t prev_value = this->alert_value;
       if (index >= 4) {
@@ -150,7 +150,7 @@ public:
     (new Automation<int, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
          new myhomeiot_ble_client2::MyHomeIOT_BLEClientConnectTrigger(this->ble_client_)))
         ->add_actions({new LambdaAction<int, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
-            [=](int rssi, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
+            [=, this](int rssi, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
               this->last_online = millis();
               this->online = true;
               this->rssi = rssi;
@@ -160,7 +160,7 @@ public:
     (new Automation<std::vector<uint8_t>, int, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
          new myhomeiot_ble_client2::MyHomeIOT_BLEClientValueTrigger(this->ble_client_)))
         ->add_actions({new LambdaAction<std::vector<uint8_t>, int, bool &, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
-            [=](std::vector<uint8_t> x, int service, bool &stop_processing,
+            [=, this](std::vector<uint8_t> x, int service, bool &stop_processing,
                 const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
               if (service == 1) {
                 this->batt = x[0];
@@ -178,11 +178,11 @@ public:
     (new Automation<uint32_t, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
          new myhomeiot_ble_client2::MyHomeIOT_BLEClientErrorTrigger(this->ble_client_)))
         ->add_actions({new LambdaAction<uint32_t, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &>(
-            [=](uint32_t error_count, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
+            [=, this](uint32_t error_count, const myhomeiot_ble_client2::MyHomeIOT_BLEClient2 &xthis) -> void {
               this->error_count = error_count;
             })});
 
-    set_component_source(id.c_str());
+    //set_component_source(id.c_str());
     ble_host->register_ble_client(this->ble_client_);
     App.register_component(this->ble_client_);
   }
@@ -208,7 +208,7 @@ public:
     this->new_alert = true;
 
     // subsribe for alert command topic
-    this->mqtt_client_->subscribe(this->alert_set_topic, [=](const std::string &topic, const std::string &payload) {
+    this->mqtt_client_->subscribe(this->alert_set_topic, [=, this](const std::string &topic, const std::string &payload) {
       ESP_LOGD(this->id.c_str(), "Alert: '%s'", payload.c_str());
       for (size_t i = 0; i < alert_options.size(); i++)
         if (strncmp(alert_options[i].c_str(), payload.c_str(), alert_options[i].length()) == 0) {
@@ -497,13 +497,13 @@ public:
     if (error_counting)
 mclh09_sensors.push_back(&ERRORS);
 
-    (new Automation<>(new mqtt::MQTTConnectTrigger(this->mqtt_client_)))->add_actions({new LambdaAction<>([=]() -> void {
+    (new Automation<>(new mqtt::MQTTConnectTrigger(this->mqtt_client_)))->add_actions({new LambdaAction<>([=, this]() -> void {
       ESP_LOGD(TAG, "Connected to MQTT");
       for (auto device : devices_)
         device->set_connected(true);
     })});
 
-    (new Automation<>(new mqtt::MQTTDisconnectTrigger(this->mqtt_client_)))->add_actions({new LambdaAction<>([=]() -> void {
+    (new Automation<>(new mqtt::MQTTDisconnectTrigger(this->mqtt_client_)))->add_actions({new LambdaAction<>([=, this]() -> void {
       ESP_LOGD(TAG, "Disconnected from MQTT");
       for (auto device : devices_)
         device->set_connected(false);
