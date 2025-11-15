@@ -18,6 +18,9 @@ ota:
   - platform: esphome
     password: !secret ota_password
 
+esp32_ble:
+  max_connections: 5
+
 esp32_ble_tracker:
   scan_parameters:
     interval: 1100ms
