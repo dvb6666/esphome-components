@@ -1,0 +1,122 @@
+esphome:
+  name: aqua-station
+  friendly_name: aqua-station
+  comment: "WD-01ADE Watering Device"
+
+bk72xx:
+  board: cbu
+
+logger:
+api:
+  encryption:
+    key: !secret api_key_ble
+ota:
+  - platform: esphome
+    password: !secret ota_password
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+
+time:
+  - platform: homeassistant
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+
+text_sensor:
+  - platform: uptime
+    name: Uptime
+    format:
+      separator: " "
+      days: "D"
+
+sensor:
+  - platform: internal_temperature
+    name: "Internal Temperature"
+    entity_category: diagnostic
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    entity_category: diagnostic
+
+binary_sensor:
+  - platform: status
+    name: Status
+    entity_category: diagnostic
+  - platform: gpio
+    name: "Button A"
+    pin:
+      number: P8
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    internal: true
+    on_press:
+      - switch.toggle: pump_a
+    filters:
+      - delayed_on: 10ms
+  - platform: gpio
+    name: "Button B"
+    pin:
+      number: P7
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    internal: true
+    on_press:
+      - switch.toggle: pump_b
+    filters:
+      - delayed_on: 10ms
+
+switch:
+  - platform: gpio
+    id: pump_a
+    name: "Pump A"
+    pin: P16
+    icon: "mdi:water-pump"
+    interlock: [pump_b]
+    on_turn_on:
+    - delay: !lambda "return 1000 * (uint32_t) id(duration_a).state;"
+    - switch.turn_off: pump_a
+  - platform: gpio
+    id: pump_b
+    name: "Pump B"
+    pin: P14
+    icon: "mdi:water-pump"
+    interlock: [pump_a]
+    on_turn_on:
+    - delay: !lambda "return 1000 * (uint32_t) id(duration_b).state;"
+    - switch.turn_off: pump_b
+  - platform: gpio
+    name: Light
+    pin:
+      number: P20
+      inverted: true
+    entity_category: diagnostic
+    icon: "mdi:alarm-light-outline"
+
+number:
+  - platform: template
+    id: duration_a
+    name: "Duration A"
+    optimistic: true
+    device_class: duration
+    # restore_value: true
+    initial_value: 20
+    min_value: 5
+    max_value: 35
+    step: 1
+  - platform: template
+    id: duration_b
+    name: "Duration B"
+    optimistic: true
+    device_class: duration
+    # restore_value: true
+    initial_value: 20
+    min_value: 5
+    max_value: 35
+    step: 1
