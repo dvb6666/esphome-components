@@ -9,7 +9,7 @@ bk72xx:
 logger:
 api:
   encryption:
-    key: !secret api_key_ble
+    key: !secret api_key
 ota:
   - platform: esphome
     password: !secret ota_password
