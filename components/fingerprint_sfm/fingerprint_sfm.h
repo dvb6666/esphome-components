@@ -197,7 +197,7 @@ public:
   TEMPLATABLE_VALUE(SfmColor, end);
   TEMPLATABLE_VALUE(uint16_t, period);
   TEMPLATABLE_VALUE(uint32_t, delay);
-  void play(Ts... x) override {
+  void play(const Ts &.. x) override {
     auto start = this->start_.value(x...);
     auto end = this->end_.value(x...);
     auto period = this->period_.value(x...);
