@@ -294,7 +294,7 @@ template<typename... Ts> class ZwAuraLEDControlAction : public Action<Ts...>, pu
   TEMPLATABLE_VALUE(ZwAuraLEDState, state);
   TEMPLATABLE_VALUE(ZwAuraLEDColor, color);
   TEMPLATABLE_VALUE(uint8_t, count);
-  void play(Ts... x) override {
+  void play(const Ts &... x) override {
     auto state = this->state_.value(x...);
     auto color = this->color_.value(x...);
     auto count = this->count_.value(x...);
@@ -305,7 +305,7 @@ template<typename... Ts> class ZwAuraLEDControlAction : public Action<Ts...>, pu
 template<typename... Ts> class ZwDeleteAction : public Action<Ts...>, public Parented<ZwComponent> {
  public:
   TEMPLATABLE_VALUE(uint16_t, finger_id);
-  void play(Ts... x) override {
+  void play(const Ts &... x) override {
     auto finger_id = this->finger_id_.value(x...);
     this->parent_->delete_one(finger_id);
   }
