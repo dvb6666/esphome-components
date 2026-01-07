@@ -81,34 +81,47 @@ void AquaWatchmanValve::loop() {
         this->current_operation = (command->code == OPEN ? VALVE_OPERATION_OPENING : VALVE_OPERATION_CLOSING);
         this->position = (command->code == OPEN ? 0.7f : 0.3f);
         this->publish_state(false);
+        this->replay_counter_ = 0;
       } break;
 
       case 2: {
         if (!command->silent) {
-          ESP_LOGV(TAG, "Setting %s pin (%d) to ON", PIN_NAME(command->code), pin->get_pin());
-          // pin->digital_write(pin->is_inverted());
+          ESP_LOGV(TAG, "Setting %s pin (%d) to HIGH (OFF)", PIN_NAME(command->code), pin->get_pin());
           pin->pin_mode(gpio::FLAG_OUTPUT);
-          pin->digital_write(pin->is_inverted());
-        }
-        delay(command->code == ALARM ? 900 : 400);
-      } break;
-
-      case 3: {
-        if (!command->silent) {
-          ESP_LOGV(TAG, "Setting %s pin (%d) to OFF", PIN_NAME(command->code), pin->get_pin());
           pin->digital_write(!pin->is_inverted());
         }
         delay(100);
       } break;
 
+      case 3: {
+        if (!command->silent) {
+          ESP_LOGV(TAG, "Setting %s pin (%d) to LOW (ON)", PIN_NAME(command->code), pin->get_pin());
+          pin->digital_write(pin->is_inverted());
+          if (command->code == ALARM && (++this->replay_counter_ < 2)) {
+            ESP_LOGV(TAG, "Replay alarm command");
+            this->phase_ = 1;
+          }
+        }
+        delay(command->code == ALARM ? 900 : 400);
+
+      } break;
+
       case 4: {
         if (!command->silent) {
-          pin->pin_mode(gpio::FLAG_INPUT);
+          ESP_LOGV(TAG, "Setting %s pin (%d) to HIGH (OFF)", PIN_NAME(command->code), pin->get_pin());
+          pin->digital_write(!pin->is_inverted());
         }
-        delay(3000);  // TODO extract to yaml-config param
+        delay(100);
       } break;
 
       case 5: {
+        if (!command->silent) {
+          pin->pin_mode(gpio::FLAG_INPUT);
+        }
+        delay(2500);  // TODO extract to yaml-config param
+      } break;
+
+      case 6: {
         ESP_LOGD(TAG, "Executed command %s (0x%02x)", COMMAND(command->code), command->code);
         this->position = (command->code == OPEN ? VALVE_OPEN : VALVE_CLOSED);
         this->current_operation = VALVE_OPERATION_IDLE;
@@ -123,7 +136,7 @@ void AquaWatchmanValve::loop() {
 
   // check power pin state only when no command executing (because on Opening command it changes its state to LOW for short time)
   if (this->queue_.empty() && this->power_pin_ && this->power_sensor_) {
-    this->power_state_ = this->power_pin_->digital_read() == this->power_pin_->is_inverted();
+    this->power_state_ = this->power_pin_->digital_read();// == this->power_pin_->is_inverted();
     if (this->power_state_ != this->power_sensor_->state) {
       ESP_LOGV(TAG, "Power state changed to %s", this->power_state_ ? "true" : "false");
       this->power_sensor_->publish_state(this->power_state_);

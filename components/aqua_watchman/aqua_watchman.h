@@ -48,7 +48,7 @@ class AquaWatchmanValve : public valve::Valve, public Component {
   valve::ValveTraits traits_{};
   std::queue<std::unique_ptr<AquaWatchmanCommand>> queue_;
   unsigned long sleep_time_{0};
-  uint16_t phase_{0};
+  uint16_t phase_{0}, replay_counter_{0};
   bool previous_close_value_{false}, previous_open_value_{false}, floor_cleaning_state_{false}, power_state_{false};
   bool ignore_buttons_{false};
   bool alarm_{false};  // TODO bad workaround for alarm action
