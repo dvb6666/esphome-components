@@ -38,6 +38,11 @@ void AquaWatchmanValve::setup() {
       this->power_sensor_->publish_state(this->power_state_);
   }
 
+  if (this->floor_cleaning_sensor_)
+    this->floor_cleaning_sensor_->set_device(this->device_);
+  if (this->power_sensor_)
+    this->power_sensor_->set_device(this->device_);
+
   this->position = 0.5f;
   this->current_operation = VALVE_OPERATION_IDLE;
   this->publish_state(false);
@@ -134,9 +139,10 @@ void AquaWatchmanValve::loop() {
     return;
   }
 
-  // check power pin state only when no command executing (because on Opening command it changes its state to LOW for short time)
+  // check power pin state only when no command executing (because on Opening command it changes its state to LOW for
+  // short time)
   if (this->queue_.empty() && this->power_pin_ && this->power_sensor_) {
-    this->power_state_ = this->power_pin_->digital_read();// == this->power_pin_->is_inverted();
+    this->power_state_ = this->power_pin_->digital_read();  // == this->power_pin_->is_inverted();
     if (this->power_state_ != this->power_sensor_->state) {
       ESP_LOGV(TAG, "Power state changed to %s", this->power_state_ ? "true" : "false");
       this->power_sensor_->publish_state(this->power_state_);

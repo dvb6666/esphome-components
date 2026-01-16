@@ -76,7 +76,14 @@ async def to_code(config):
     cg.add(var.set_ignore_buttons(config[CONF_IGNORE_BUTTONS]))
 
 
-@automation.register_action("valve.aqua_watchman.alarm", AquaWatchmanAlarmAction, valve.VALVE_ACTION_SCHEMA)
+
+VALVE_ACTION_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.use_id(AquaWatchmanValve),
+    }
+)
+
+@automation.register_action("valve.aqua_watchman.alarm", AquaWatchmanAlarmAction, VALVE_ACTION_SCHEMA)
 async def aqua_watchman_alarm_to_code(config, action_id, template_arg, args):
     parent = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, parent)
