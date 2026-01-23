@@ -495,8 +495,22 @@ public:
       SOIL.unit = SOIL.dev_class = NULL;
     mclh09_sensors = {&BATT, &TEMP, &LUMI, &SOIL, &HUMI, &RSSI};
     if (error_counting)
-mclh09_sensors.push_back(&ERRORS);
+      mclh09_sensors.push_back(&ERRORS);
 
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 1, 0)
+    (new Automation<bool>(new mqtt::MQTTConnectTrigger(this->mqtt_client_)))->add_actions({new LambdaAction<bool>([=, this](bool v) -> void {
+      ESP_LOGD(TAG, "Connected to MQTT");
+      for (auto device : devices_)
+        device->set_connected(true);
+    })});
+
+    (new Automation<mqtt::MQTTClientDisconnectReason>(new mqtt::MQTTDisconnectTrigger(this->mqtt_client_)))->add_actions({new LambdaAction<mqtt::MQTTClientDisconnectReason>([=, this](mqtt::MQTTClientDisconnectReason reason) -> void {
+      ESP_LOGD(TAG, "Disconnected from MQTT");
+      for (auto device : devices_)
+        device->set_connected(false);
+    })});
+
+#else
     (new Automation<>(new mqtt::MQTTConnectTrigger(this->mqtt_client_)))->add_actions({new LambdaAction<>([=, this]() -> void {
       ESP_LOGD(TAG, "Connected to MQTT");
       for (auto device : devices_)
@@ -508,6 +522,7 @@ mclh09_sensors.push_back(&ERRORS);
       for (auto device : devices_)
         device->set_connected(false);
     })});
+#endif
 
     for (auto address : mac_addresses)
       add_device(address);
