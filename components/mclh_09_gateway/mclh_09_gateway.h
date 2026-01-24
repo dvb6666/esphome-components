@@ -71,8 +71,10 @@ public:
       batt_sensor[i] = new sensor::Sensor();
       snprintf(buffer, sizeof(buffer), SENSOR_NAME, i + 1, "batt");
       batt_sensor[i]->set_name(strdup(buffer));
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 1, 0)
       snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "batt");
       batt_sensor[i]->set_object_id(strdup(buffer));
+#endif
       batt_sensor[i]->set_disabled_by_default(false);
       batt_sensor[i]->set_device_class("battery");
       batt_sensor[i]->set_state_class(sensor::STATE_CLASS_MEASUREMENT);
@@ -85,8 +87,10 @@ public:
       temp_sensor[i] = new sensor::Sensor();
       snprintf(buffer, sizeof(buffer), SENSOR_NAME, i + 1, "temp");
       temp_sensor[i]->set_name(strdup(buffer));
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 1, 0)
       snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "temp");
       temp_sensor[i]->set_object_id(strdup(buffer));
+#endif
       temp_sensor[i]->set_disabled_by_default(false);
       temp_sensor[i]->set_device_class("temperature");
       temp_sensor[i]->set_state_class(sensor::STATE_CLASS_MEASUREMENT);
@@ -100,8 +104,10 @@ public:
       lumi_sensor[i] = new sensor::Sensor();
       snprintf(buffer, sizeof(buffer), SENSOR_NAME, i + 1, "lumi");
       lumi_sensor[i]->set_name(strdup(buffer));
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 1, 0)
       snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "lumi");
       lumi_sensor[i]->set_object_id(strdup(buffer));
+#endif
       lumi_sensor[i]->set_disabled_by_default(false);
       lumi_sensor[i]->set_device_class("illuminance");
       lumi_sensor[i]->set_state_class(sensor::STATE_CLASS_MEASUREMENT);
@@ -116,8 +122,10 @@ public:
       soil_sensor[i] = new sensor::Sensor();
       snprintf(buffer, sizeof(buffer), SENSOR_NAME, i + 1, "soil");
       soil_sensor[i]->set_name(strdup(buffer));
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 1, 0)
       snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "soil");
       soil_sensor[i]->set_object_id(strdup(buffer));
+#endif
       soil_sensor[i]->set_disabled_by_default(false);
       soil_sensor[i]->set_state_class(sensor::STATE_CLASS_MEASUREMENT);
       if (!raw_soil) {
@@ -134,8 +142,10 @@ public:
       humi_sensor[i] = new sensor::Sensor();
       snprintf(buffer, sizeof(buffer), SENSOR_NAME, i + 1, "humi");
       humi_sensor[i]->set_name(strdup(buffer));
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 1, 0)
       snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "humi");
       humi_sensor[i]->set_object_id(strdup(buffer));
+#endif
       humi_sensor[i]->set_disabled_by_default(false);
       humi_sensor[i]->set_device_class("humidity");
       humi_sensor[i]->set_state_class(sensor::STATE_CLASS_MEASUREMENT);
@@ -149,8 +159,10 @@ public:
       rssi_sensor[i] = new sensor::Sensor();
       snprintf(buffer, sizeof(buffer), SENSOR_NAME, i + 1, "rssi");
       rssi_sensor[i]->set_name(strdup(buffer));
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 1, 0)
       snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "rssi");
       rssi_sensor[i]->set_object_id(strdup(buffer));
+#endif
       rssi_sensor[i]->set_disabled_by_default(false);
       rssi_sensor[i]->set_device_class("signal_strength");
       rssi_sensor[i]->set_icon("mdi:signal");
@@ -166,8 +178,10 @@ public:
         error_sensor[i] = new sensor::Sensor();
         snprintf(buffer, sizeof(buffer), SENSOR_NAME, i + 1, "errors");
         error_sensor[i]->set_name(strdup(buffer));
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 1, 0)
         snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "errors");
         error_sensor[i]->set_object_id(strdup(buffer));
+#endif
         error_sensor[i]->set_disabled_by_default(false);
         error_sensor[i]->set_icon("mdi:alert-circle");
         error_sensor[i]->set_entity_category(ENTITY_CATEGORY_DIAGNOSTIC);
@@ -182,8 +196,10 @@ public:
       alert_select[i] = new AlertSelect();
       snprintf(buffer, sizeof(buffer), SENSOR_NAME, i + 1, "alert select");
       alert_select[i]->set_name(strdup(buffer));
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 1, 0)
       snprintf(buffer, sizeof(buffer), SENSOR_ID, i + 1, "alert_select");
       alert_select[i]->set_object_id(strdup(buffer));
+#endif
       App.register_component(alert_select[i]);
       App.register_select(alert_select[i]);
 
