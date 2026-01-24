@@ -119,7 +119,11 @@ class SamsungAC : public Component, public climate::Climate {
         climate::CLIMATE_SWING_OFF,
         climate::CLIMATE_SWING_VERTICAL,
     });
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 1, 0)
+    traits.add_feature_flags(climate::CLIMATE_SUPPORTS_CURRENT_TEMPERATURE);
+#else
     traits.set_supports_current_temperature(true);
+#endif
     return traits;
   }
 
