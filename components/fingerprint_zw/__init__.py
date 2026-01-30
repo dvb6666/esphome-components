@@ -240,14 +240,14 @@ async def start_scan_action_to_code(config, action_id, template_arg, args):
     await cg.register_parented(var, config[CONF_ID])
     return var
 
-# @automation.register_action("fingerprint_zw.start_register", ZwStartRegisterAction, START_REGISTER_ACTION_SCHEMA)
-# async def start_register_action_to_code(config, action_id, template_arg, args):
-#     var = cg.new_Pvariable(action_id, template_arg)
-#     await cg.register_parented(var, config[CONF_ID])
-#     cg.add(var.set_finger_id(await cg.templatable(config[CONF_FINGER_ID], args, cg.uint16)))
-#     cg.add(var.set_role(await cg.templatable(config[CONF_ROLE], args, cg.uint8)))
-#     cg.add(var.set_delay(await cg.templatable(config[CONF_DELAY], args, cg.uint32)))
-#     return var
+@automation.register_action("fingerprint_zw.start_register", ZwStartRegisterAction, START_REGISTER_ACTION_SCHEMA)
+async def start_register_action_to_code(config, action_id, template_arg, args):
+     var = cg.new_Pvariable(action_id, template_arg)
+     await cg.register_parented(var, config[CONF_ID])
+     cg.add(var.set_finger_id(await cg.templatable(config[CONF_FINGER_ID], args, cg.uint16)))
+     cg.add(var.set_role(await cg.templatable(config[CONF_ROLE], args, cg.uint8)))
+     cg.add(var.set_delay(await cg.templatable(config[CONF_DELAY], args, cg.uint32)))
+     return var
 
 @automation.register_action("fingerprint_zw.aura_led_control", ZwAuraLEDControlAction, SET_COLOR_ACTION_SCHEMA)
 async def set_color_action_to_code(config, action_id, template_arg, args):
