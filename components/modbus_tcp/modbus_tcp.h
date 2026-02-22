@@ -107,7 +107,7 @@ class ModbusTcpComponent : public Component {
 
   bool read_registers(uint8_t response_code, uint16_t first_register, uint16_t registers_count = 1) {
     if (connected_) {
-      uint16_t rx_size = 9 + 2 * registers_count > MAX_RX_BUFFER_SIZE;
+      uint16_t rx_size = 9 + 2 * registers_count; // > MAX_RX_BUFFER_SIZE;
       if (rx_size > MAX_RX_BUFFER_SIZE) {
         ESP_LOGW(TAG, "Too small RX buffer (current size %d, needed %d)", MAX_RX_BUFFER_SIZE, rx_size);
         return false;
