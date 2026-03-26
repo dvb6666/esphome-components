@@ -4,6 +4,7 @@ from esphome import automation, pins
 from esphome.components import binary_sensor, valve
 from esphome.const import (
     CONF_ID,
+    CONF_DEVICE_ID,
     CONF_NAME,
     # ENTITY_CATEGORY_DIAGNOSTIC,
     DEVICE_CLASS_POWER,
@@ -61,6 +62,9 @@ CONFIG_SCHEMA = cv.All(valve.valve_schema(device_class = DEVICE_CLASS_WATER).ext
 
 
 async def to_code(config):
+    sub_device = None
+    if sub_device_config := config.get(CONF_DEVICE_ID):
+        sub_device = await cg.get_variable(sub_device_config)
     close_pin = await cg.gpio_pin_expression(config[CONF_CLOSE_PIN])
     open_pin = await cg.gpio_pin_expression(config[CONF_OPEN_PIN])
     var = await valve.new_valve(config, close_pin, open_pin)
@@ -73,6 +77,8 @@ async def to_code(config):
         if sensor_config := config.get(key):
             sens = await binary_sensor.new_binary_sensor(sensor_config)
             cg.add(getattr(var, f"set_{key}")(sens))
+            if sub_device:
+                cg.add(getattr(sens, "set_device_")(sub_device))
     cg.add(var.set_ignore_buttons(config[CONF_IGNORE_BUTTONS]))
 
 
@@ -83,7 +89,7 @@ VALVE_ACTION_SCHEMA = cv.Schema(
     }
 )
 
-@automation.register_action("valve.aqua_watchman.alarm", AquaWatchmanAlarmAction, VALVE_ACTION_SCHEMA)
+@automation.register_action("valve.aqua_watchman.alarm", AquaWatchmanAlarmAction, VALVE_ACTION_SCHEMA, synchronous=True)
 async def aqua_watchman_alarm_to_code(config, action_id, template_arg, args):
     parent = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, parent)

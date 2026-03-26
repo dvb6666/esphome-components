@@ -38,13 +38,6 @@ void AquaWatchmanValve::setup() {
       this->power_sensor_->publish_state(this->power_state_);
   }
 
-#ifdef USE_DEVICES
-  if (this->floor_cleaning_sensor_)
-    this->floor_cleaning_sensor_->set_device(this->device_);
-  if (this->power_sensor_)
-    this->power_sensor_->set_device(this->device_);
-#endif
-
   this->position = 0.5f;
   this->current_operation = VALVE_OPERATION_IDLE;
   this->publish_state(false);

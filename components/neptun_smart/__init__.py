@@ -184,7 +184,7 @@ async def to_code(config):
             cg.add(getattr(swt, "set_has_state")(False))
             cg.add(getattr(var, f"set_{key}_switch")(swt))
             if sub_device:
-                cg.add(getattr(swt, "set_device")(sub_device))
+                cg.add(getattr(swt, "set_device_")(sub_device))
 
     for key in [CONF_CONNECTION_STATUS, CONF_WIRELESS_SENSOR_DISCHARGED, CONF_WIRELESS_SENSOR_LOST]:
         if sensor_config := config.get(key):
@@ -192,14 +192,14 @@ async def to_code(config):
             cg.add(getattr(sens, "set_trigger_on_initial_state")(True))
             cg.add(getattr(var, f"set_{key}_sensor")(sens))
             if sub_device:
-                cg.add(getattr(sens, "set_device")(sub_device))
+                cg.add(getattr(sens, "set_device_")(sub_device))
 
     for key in [CONF_WIRELESS_SENSORS_COUNT]:
         if sensor_config := config.get(key):
             sens = await sensor.new_sensor(sensor_config)
             cg.add(getattr(var, f"set_{key}_sensor")(sens))
             if sub_device:
-                cg.add(getattr(sens, "set_device")(sub_device))
+                cg.add(getattr(sens, "set_device_")(sub_device))
 
     for idx, key in enumerate(CONF_ALERT_ZONE_ARRAY):
         if sensor_config := config.get(key):
@@ -207,7 +207,7 @@ async def to_code(config):
             cg.add(getattr(sens, "set_trigger_on_initial_state")(True))
             cg.add(getattr(var, f"set_{CONF_ALERT_ZONE}_sensor")(idx, sens))
             if sub_device:
-                cg.add(getattr(sens, "set_device")(sub_device))
+                cg.add(getattr(sens, "set_device_")(sub_device))
 
     for idx, key in enumerate(CONF_VALVE_ZONE_ARRAY):
         if switch_config := config.get(key):
@@ -217,7 +217,7 @@ async def to_code(config):
             cg.add(getattr(swt, "set_has_state")(False))
             cg.add(getattr(var, f"set_{CONF_VALVE_ZONE}_switch")(idx, swt))
             if sub_device:
-                cg.add(getattr(swt, "set_device")(sub_device))
+                cg.add(getattr(swt, "set_device_")(sub_device))
 
     for idx, key in enumerate(CONF_WIRE_LINE_LEAK_ARRAY):
         if sensor_config := config.get(key):
@@ -225,11 +225,11 @@ async def to_code(config):
             cg.add(getattr(sens, "set_trigger_on_initial_state")(True))
             cg.add(getattr(var, f"set_{CONF_WIRE_LINE_LEAK}_sensor")(idx, sens))
             if sub_device:
-                cg.add(getattr(sens, "set_device")(sub_device))
+                cg.add(getattr(sens, "set_device_")(sub_device))
 
     for idx, key in enumerate(CONF_WATER_COUNTER_ARRAY):
         if sensor_config := config.get(key):
             sens = await sensor.new_sensor(sensor_config)
             cg.add(getattr(var, f"set_{CONF_WATER_COUNTER}_sensor")(idx, sens))
             if sub_device:
-                cg.add(getattr(sens, "set_device")(sub_device))
+                cg.add(getattr(sens, "set_device_")(sub_device))
