@@ -74,6 +74,9 @@ typedef struct {
 #define PS_ControlBLN 0x3C
 #define PS_DeletChar 0x0C
 #define PS_Empty 0x0D
+#define PS_RegModel 0x05
+#define PS_StoreChar 0x06
+
 // #define PS_Getlmagelnfo 0x3D
 // #define PS_CheckSensor 0x36
 
@@ -120,6 +123,17 @@ class ZwCommandDeleteOne : public ZwCommand {
 class ZwCommandDeleteAll : public ZwCommand {
  public:
   ZwCommandDeleteAll() : ZwCommand(PS_Empty, 3, 3) {}
+};
+
+class ZwCommandRegModel : public ZwCommand {
+ public:
+  ZwCommandRegModel() : ZwCommand(PS_RegModel, 3, 3) {}
+};
+
+class ZwCommandStoreChar : public ZwCommand {
+ public:
+  ZwCommandStoreChar(uint16_t finger_id, uint8_t buffer = 1)
+      : ZwCommand(PS_StoreChar, 6, 3, buffer, (finger_id >> 8) & 0xFF, finger_id & 0xFF) {}
 };
 
 class ZwComponent : public Component, public uart::UARTDevice {
