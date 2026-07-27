@@ -80,6 +80,7 @@ ir_depth = 3.7 + 2*ir_wall; // глубина
 
 $fn = 100;
 
+use <modules.scad>
 
 // Корпус
 difference() {
@@ -296,45 +297,8 @@ translate([0, 0, 50])difference() { // z=20 чтобы впритык к кор�
 
 // Плата
 %translate([a_length - a_width/2 - a_wall_width, b_width/2, a_wall_width + b_z_offset])
-rotate([0,0,270]) scale(0.2573) translate([-3973.36, 3682 -132, 0]) import("D:/Devel/Projects/openscad/temp/OBJ_PCB_StepperRolls_4.obj.stl");
+rotate([0,0,270]) scale(0.2573) translate([-3973.36, 3682 -132, 0]) import("PCB_StepperRolls_4.stl");
 
 // второй (верхний) IR
 if (IR_SENS_2) rotate([0, 0, IR_SENS_2_ANGLE]) translate([-a_width/2 + ir_wall, 0, a_height - ir_height - a_wall_width/2])
     %rotate([0,0,-90]) scale(0.2573) translate([-4020, 3421, -13]) import("VS1838B.stl");
-
-
-module hole(dist_cent, diam, height) {
-  hull() {
-    translate([-dist_cent/2, 0, 0]) cylinder(h=height, d=diam);
-    translate([dist_cent/2, 0, 0]) cylinder(h=height, d=diam);
-  }
-}
-
-module round_arc(diam, width, dir_x = 1, dir_y = 1) {
-    difference() {
-        cube([diam, diam, width], center=true);
-        translate([dir_x*diam/2, dir_y*diam/2, -width/2 - 0.5]) cylinder(h=width+1, d=2*diam);
-    }
-}
-
-module cut_button(dist_cent, height, diam, base, thick) {
-  difference() {
-    union() {
-      cylinder(h=height, d=diam);
-      translate([dist_cent/2, 0, height/2]) cube([dist_cent, base, height], center = true);
-    }
-    translate([0, 0, -0.5]) cylinder(h=height +1, d=diam-thick);
-    translate([dist_cent/2, 0, height/2]) cube([dist_cent +1, base - thick, height +1], center = true);
-  }
-}
-
-module latch1(width1, height1, depth1, depth2, decrement) {
-    latch2(width1, height1, depth1, width1 - decrement, height1 - decrement, depth2);
-}
-
-module latch2(width1, height1, depth1, width2, height2, depth2) {
-  hull() {
-    translate([0, depth1/2, 0]) cube([width1, depth1, height1], center=true);
-    translate([0, depth1 + depth2/2, 0]) cube([width2, depth2, height2], center=true);
-  }
-}
