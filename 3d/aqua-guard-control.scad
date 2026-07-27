@@ -14,7 +14,7 @@ l_height = 1.2;
 d_width = 3;
 d_height = 4;
 // кнопка
-b_dx = 24.7;
+b_dx = 24.5;
 b_dy = 11;
 b_pin_diam = 3; // диаметр штырька для нажатия на кнопку
 b_esp_with_btn_height = 5.5 - a_pcb_height;
@@ -63,7 +63,7 @@ translate([0, 0, a_height/2]) box(1);
 
 module box(part) {
     difference() {
-        l_points = [-23, 23];
+        l_points = [-20, 23];
         h_points = [-(a_length/2 - h1_dx), a_width/2 - h1_dy, a_length/2 - h2_dx, a_width/2 - h2_dy];
         pcb_top = -a_height/2 + a_pcb_z_offset + a_pcb_height;
         cut_z = pcb_top + l_height + 2;
@@ -116,10 +116,10 @@ module box(part) {
                     translate([0, 0, d_height/2 + a_wall/2]) rotate([90, 0, 0]) round_arc(a_wall, d_width);
                 }
                 // штырёк для кнопки нажатия на Boot
-                pin_height = a_height - a_pcb_z_offset - a_pcb_height - b_esp_with_btn_height - b_pin_diam/2;
+                pin_height = a_height - a_pcb_z_offset - a_pcb_height - b_esp_with_btn_height;// - b_pin_diam/2;
                 translate([-a_length/2 + b_dx, a_width/2 - b_dy, a_height/2 - pin_height]) {
                     cylinder(h=pin_height + 0.1, d=b_pin_diam);
-                    sphere(d=b_pin_diam);
+//                    sphere(d=b_pin_diam);
                 }
                 // выступы для верхних отверстий
 //                for (i = [0 : 2 : len(h_points)-1]) for(xx = h_points[i], yy = [-h_points[i+1], h_points[i+1]]) 
