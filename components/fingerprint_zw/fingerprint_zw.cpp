@@ -90,7 +90,7 @@ void ZwComponent::setup() {
 }
 
 void ZwComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "ZW111 Serial Number \"%s\", Address 0x%08X", this->module_id_, this->address_);
+  ESP_LOGCONFIG(TAG, "ZW111 Serial Number \"%s\", Address 0x%08lX", this->module_id_, this->address_);
   if (this->sensor_power_pin_) {
     LOG_PIN("  Sensor Power Pin: ", this->sensor_power_pin_);
   } else {
@@ -102,7 +102,7 @@ void ZwComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  Sensing (IRQ) Pin: None");
   }
   if (this->idle_period_to_sleep_ms_ > 0) {
-    ESP_LOGCONFIG(TAG, "  Idle Period to Sleep: %dms", this->idle_period_to_sleep_ms_);
+    ESP_LOGCONFIG(TAG, "  Idle Period to Sleep: %ldms", this->idle_period_to_sleep_ms_);
   } else {
     ESP_LOGCONFIG(TAG, "  Idle Period to Sleep: Never");
   }
@@ -154,7 +154,7 @@ void ZwComponent::loop() {
       this->phase_ = 0;
       // if all commands completed, add led-off command if option 'auto_led_off' is enabled
       if (this->commands_queue_.empty() && this->need_led_off_) {
-        ESP_LOGV(TAG, "Delay %dms before led off", this->idle_period_to_sleep_ms_);
+        ESP_LOGV(TAG, "Delay %ldms before led off", this->idle_period_to_sleep_ms_);
         this->need_led_off_ = false;
         aura_led_control(fingerprint_zw::BREATHING, fingerprint_zw::OFF);
         delay(this->idle_period_to_sleep_ms_);
@@ -162,7 +162,7 @@ void ZwComponent::loop() {
       }
       // if all commands completed sleep before power-off sensor
       if (this->commands_queue_.empty() && this->idle_period_to_sleep_ms_ > 0 && this->sensor_power_pin_) {
-        ESP_LOGV(TAG, "Delay %dms before setting sensor_power_pin(%d) to state 'power-off'",
+        ESP_LOGV(TAG, "Delay %ldms before setting sensor_power_pin(%d) to state 'power-off'",
                  this->idle_period_to_sleep_ms_, this->sensor_power_pin_->get_pin());
         delay(this->idle_period_to_sleep_ms_);
       }
@@ -411,7 +411,7 @@ bool ZwComponent::process_command(ZwCommand *command) {
           // this->address_ = htonl(params->device_address);
           ESP_LOGD(
               TAG,
-              "Params: EnrollTimes=%d, TempSize=%d, DataBaseSize=%d, ScoreLevel=%d, DeviceAddress=0x%08X, BaudRate=%d",
+              "Params: EnrollTimes=%d, TempSize=%d, DataBaseSize=%d, ScoreLevel=%d, DeviceAddress=0x%08lX, BaudRate=%d",
               htons(params->enroll_times), htons(params->temp_size), this->capacity_, htons(params->score_level),
               this->address_, htons(params->baud_rate) * 9600);
           if (this->capacity_sensor_)
@@ -431,7 +431,7 @@ bool ZwComponent::process_command(ZwCommand *command) {
           strncpy(this->sensor_name_, params->sensor_name, 8);
           ESP_LOGD(
               TAG,
-              "Params: EnrollTimes=%d, TempSize=%d, DataBaseSize=%d, ScoreLevel=%d, DeviceAddress=0x%08X, BaudRate=%d",
+              "Params: EnrollTimes=%d, TempSize=%d, DataBaseSize=%d, ScoreLevel=%d, DeviceAddress=0x%08lX, BaudRate=%d",
               htons(params->enroll_times), htons(params->temp_size), this->capacity_, htons(params->score_level),
               this->address_, htons(params->baud_rate) * 9600);
           ESP_LOGD(
@@ -466,7 +466,7 @@ bool ZwComponent::process_command(ZwCommand *command) {
     case 7: {
       // delay after command completed
       if (command->delay > 0) {
-        ESP_LOGV(TAG, "Command 0x%02X, phase %d: delay %dms after command completed", command->code, this->phase_,
+        ESP_LOGV(TAG, "Command 0x%02X, phase %d: delay %ldms after command completed", command->code, this->phase_,
                  command->delay);
         delay(command->delay);
       }

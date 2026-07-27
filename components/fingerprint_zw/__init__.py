@@ -234,7 +234,7 @@ async def to_code(config):
         await automation.build_automation(trigger, [(cg.uint8, "error_code")], conf)
 
 
-@automation.register_action("fingerprint_zw.start_scan", ZwStartScanAction, DEFAULT_ACTION_SCHEMA)
+@automation.register_action("fingerprint_zw.start_scan", ZwStartScanAction, DEFAULT_ACTION_SCHEMA, synchronous=True)
 async def start_scan_action_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
@@ -249,7 +249,7 @@ async def start_scan_action_to_code(config, action_id, template_arg, args):
 #     cg.add(var.set_delay(await cg.templatable(config[CONF_DELAY], args, cg.uint32)))
 #     return var
 
-@automation.register_action("fingerprint_zw.aura_led_control", ZwAuraLEDControlAction, SET_COLOR_ACTION_SCHEMA)
+@automation.register_action("fingerprint_zw.aura_led_control", ZwAuraLEDControlAction, SET_COLOR_ACTION_SCHEMA, synchronous=True)
 async def set_color_action_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
@@ -258,14 +258,14 @@ async def set_color_action_to_code(config, action_id, template_arg, args):
     cg.add(var.set_count(await cg.templatable(config[CONF_COUNT], args, cg.uint8)))
     return var
 
-@automation.register_action("fingerprint_zw.delete", ZwDeleteAction, DELETE_ACTION_SCHEMA)
+@automation.register_action("fingerprint_zw.delete", ZwDeleteAction, DELETE_ACTION_SCHEMA, synchronous=True)
 async def delete_action_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     cg.add(var.set_finger_id(await cg.templatable(config[CONF_FINGER_ID], args, cg.uint16)))
     return var
 
-@automation.register_action("fingerprint_zw.delete_all", ZwDeleteAllAction, DEFAULT_ACTION_SCHEMA)
+@automation.register_action("fingerprint_zw.delete_all", ZwDeleteAllAction, DEFAULT_ACTION_SCHEMA, synchronous=True)
 async def delete_all_action_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
