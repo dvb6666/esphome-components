@@ -95,10 +95,10 @@ module box(part) {
                     }
             }
             if (part == 1) {
-                // вырезы под защёлки
+                // защёлки
                 hl = 4*l_height;
                 rl = a_wall/2 + a_xy_error;
-                err = 0.1;
+                err = 0.2;
                 for(x = l_points, y = [-1, 1]) { 
                     translate([x, y*(a_width-a_wall)/2, pcb_top + l_height/2 + err]) rotate([90 - y*90, 0, 0]) latch1(l_width, l_height, a_wall, a_wall*0.8, 0.6);
                     translate([x, y*a_width/2, pcb_top + hl/2 + l_height + err]) cube([l_width, a_wall, hl], center=true);

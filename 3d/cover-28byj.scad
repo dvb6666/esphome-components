@@ -21,14 +21,13 @@ b_length = bottom_to_shaft + b_shift_from_center - bottom_clearence;
 b_diam = m_holes_dist + m_holes_diam_out + 3;//45
 b_height = m_height;// + 4;
 // top cover
-t_height=2;
-ts_diam=20;
-ts_height=0.7;
+t_height=2; // высота крышки
+ts_height=0.7; // высота углубления под болтики на крышке
 
 // M3 винт
 h_screw_S = 5.5;
 h_screw_E = 6.35;
-h_screw_height = 3;
+h_screw_height = 2.8;
 h_screw_top_shift = 10 - t_height;//h_screw_height + 5;
 
 // горизонтальная площадка со стороны крепления к окну
@@ -80,7 +79,7 @@ difference() {
   translate([0, 0, b_height]) cylinder(h=b_height, d=3*b_diam);
   
   // вырезаем отверстие под мотор
-  translate([0, 0, -1]) cylinder(h=b_height+2, d=m_diam2);
+  cylinder(h=b_height+2, d=m_diam2);
   // вырез до основания
 //  translate([-b_diam, 0, b_height/2+0.5]) cube([2*b_diam, m_diam2, b_height+1], center=true);
   m_diff = b_w1 - 2*kb_h1;
@@ -134,7 +133,6 @@ difference() {
   zz = t_height + b_rounding;
   translate([0, 0, -t_height]) cylinder(h=zz, d=3*b_diam);
   translate([m_center_to_shaft, 0, 0]) cylinder(h=100, d=9.5);
-//  translate([m_center_to_shaft, 0, zz - ts_height]) cylinder(h=100, d=ts_diam);
   for (y = [-1, 1]) {
     yy = y*m_holes_dist/2;
     translate([0, yy, -1]) cylinder(h=100, d=m_holes_diam_in);
@@ -146,7 +144,7 @@ difference() {
 // колпачок
 // диаметр, высота, высота верхушки
 s_d1=15.6; s_len=20; s_cone=5;
-s_d2=17.4; // диаметр вместе с ребрами
+s_d2=17.3; // диаметр вместе с ребрами
 // диаметр (чуть шире основного цилиндра) и высота основания
 s_bd=s_d1 + 4.4; s_bl=1.5;
 translate([m_center_to_shaft, 0, 70])
