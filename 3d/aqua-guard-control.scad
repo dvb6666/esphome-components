@@ -130,7 +130,7 @@ module box(part) {
         }
         
         // вырез под USB
-        translate([-a_length/2 + u_offset_x, a_width/2 + 2*a_wall, usb_center_z]) rotate([90, 0, 0]) hole(u_width, u_height, 2*a_wall);
+        translate([-a_length/2 + u_offset_x, a_width/2 + 2*a_wall, usb_center_z]) rotate([90, 0, 0]) hole(2*a_wall, u_width, u_height);
         
         if (part == 0) {
             // вырезы под защёлки с небольшим запасом по ширине и высоте

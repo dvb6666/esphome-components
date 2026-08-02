@@ -1,7 +1,11 @@
-module hole(dist_cent, diam, height) {
+module hole(height, dist_cent, diam) {
+  hole2(height, dist_cent, diam, diam);
+}
+
+module hole2(height, dist_cent, diam1, diam2) {
   hull() {
-    translate([-dist_cent/2, 0, 0]) cylinder(h=height, d=diam);
-    translate([dist_cent/2, 0, 0]) cylinder(h=height, d=diam);
+    translate([-dist_cent/2, 0, 0]) cylinder(h=height, d1=diam1, d2=diam2);
+    translate([dist_cent/2, 0, 0]) cylinder(h=height, d1=diam1, d2=diam2);
   }
 }
 

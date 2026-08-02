@@ -1,3 +1,4 @@
+use <modules.scad>
 $fn = 100;
 
 error=0.2;
@@ -59,7 +60,7 @@ translate([-bottom_to_shaft + m_center_to_shaft, 0, b_height - 10]) rotate([0,0,
     k_h_h1=4; // расстояние между центрами отверстий
     k_h_d1=3.8; // диаметр отверстия
     k_h_sh=k_w1-0.8; // сдвиг по глубине отверстий; поставить "-0.1", чтобы отверстия стали скозными
-    for (x = [-1, 1]) translate([b_w1/2 + x * k_h_r/2, k_h_sh, 1+k_h1/2]) rotate([0, 90,  90]) hole(k_h_h1, k_w1+0.2, k_h_d1);
+    for (x = [-1, 1]) translate([b_w1/2 + x * k_h_r/2, k_h_sh, 1+k_h1/2]) rotate([0, 90,  90]) hole(k_h_d1, k_h_h1, k_w1+0.2);
   }
 
 // площадка под мотор
@@ -175,11 +176,4 @@ difference() {
   // вырезаем центр стрежня (чуть выше выреза по вал моторчика)
   hl=sl + 3;
   translate([0, 0, hl]) cylinder(h=s_len, d=9);
-}
-
-module hole(dist_cent, height, diam) {
-  hull() {
-    translate([-dist_cent/2, 0, 0]) cylinder(h=height, d=diam);
-    translate([dist_cent/2, 0, 0]) cylinder(h=height, d=diam);
-  }
 }

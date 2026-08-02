@@ -140,7 +140,7 @@ difference() {
             }
             // два продолговатых отверстия сзади
             for (x = [-1, 1]) translate([x * a_binding_holes_dist/2, -0.1, a_binding_base_height/2]) 
-                rotate([0, 90,  90]) hole(a_binding_holes_height - a_binding_holes_diam, a_binding_holes_diam, a_binding_holes_depth + 0.1);
+                rotate([0, 90,  90]) hole(a_binding_holes_depth + 0.1, a_binding_holes_height - a_binding_holes_diam, a_binding_holes_diam);
         }
         
         // крепление под мотор
@@ -192,13 +192,13 @@ difference() {
     }            
 
     // вырез для USB-C снизу
-    translate([a_length - a_width/2 - a_wall_width - 1, 0, a_wall_width + b_z_offset + 15]) rotate([90, 0, 90]) hole(5.5, 4.5, 2*a_wall_width);
+    translate([a_length - a_width/2 - a_wall_width - 1, 0, a_wall_width + b_z_offset + 15]) rotate([90, 0, 90]) hole(2*a_wall_width, 5.5, 4.5);
     // вырез для дополнительного USB-C снизу
     if (EXT_USBC_1) {
-        translate([a_length - a_width/2 - a_wall_width - 1, 0, a_wall_width + b_z_offset + 4.3]) rotate([90, 0, 90]) hole(5.5, 4.5, 2*a_wall_width);
+        translate([a_length - a_width/2 - a_wall_width - 1, 0, a_wall_width + b_z_offset + 4.3]) rotate([90, 0, 90]) hole(2*a_wall_width,5.5, 4.5);
     } else {
         // вырез для дополнительного USB-C сбоку
-        if (EXT_USBC_2) translate([a_length - a_width/2 - 8.6, 0, -1]) rotate([0, 0, 90]) hole(5.5, 4.5, 2*a_wall_width);
+        if (EXT_USBC_2) translate([a_length - a_width/2 - 8.6, 0, -1]) rotate([0, 0, 90]) hole(2*a_wall_width, 5.5, 4.5);
         // вырез для IR-сенсора
         if (IR_SENS_1) translate([a_length - a_width/2 - a_wall_width - 1, 0, a_wall_width + b_z_offset + 8]) cube([20, 7, 10], center=true);
     }
@@ -209,7 +209,7 @@ difference() {
     y_offset = a_width_no_rounding/2 - c_latch_border_dist - c_latch_width/2;
     la_height = c_latch_height + 0.2; // высота выреза с небольшим запасом
     for (y = [-1, 1]) translate([a_length - a_width/2 - a_wall_width - 1, y * y_offset, z_top + la_height/2]) {
-        rotate([90, 0, 90]) hole(c_latch_width - la_height +0.2, la_height, 2*a_wall_width);
+        rotate([90, 0, 90]) hole(2*a_wall_width, c_latch_width - la_height +0.2, la_height);
         translate([c_latch_len/2, 0, la_height/4]) cube([c_latch_len, c_latch_width + 0.2, la_height/2], center=true);
     }
         
@@ -268,7 +268,7 @@ translate([0, 0, 50])difference() { // z=20 чтобы впритык к кор�
         y_offset = a_width_no_rounding/2 - c_latch_border_dist - c_latch_width/2;
         z_top = a_wall_width;
         for (y = [-1, 1]) translate([a_length - a_width/2 - c_latch_len - a_wall_width/3, y * y_offset, z_top + c_latch_height/2]) {
-            rotate([90, 0, 90]) hole(c_latch_width - c_latch_height, c_latch_height, c_latch_len);
+            rotate([90, 0, 90]) hole(c_latch_len, c_latch_width - c_latch_height, c_latch_height);
             translate([c_latch_len/2, 0, c_latch_height/4]) cube([c_latch_len, c_latch_width, c_latch_height/2], center=true);
             translate([-c_latch_height/4, 0, c_latch_height/4]) rotate([90, 0, 0]) round_arc(c_latch_height/2, c_latch_width, -1, -1);
         }
