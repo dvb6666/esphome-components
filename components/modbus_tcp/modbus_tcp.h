@@ -267,8 +267,7 @@ class ModbusTcpComponent : public Component {
           ESP_LOGW(TAG, "Got error 0x%02X for command 0x%02X", rx_buffer_[buf_len], command->function);
           return true;
         } else if (function != command->function) {
-          ESP_LOGW(TAG, "Wrong function code 0x%02X for command 0x%02X (0x%02x instead of 0x%02x)", function,
-                   command->function);
+          ESP_LOGW(TAG, "Wrong function code 0x%02X for command 0x%02X", function, command->function);
           return true;
         }
         if (command->function == 0x03) {

@@ -22,7 +22,7 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(ModbusTcpComponent),
-            cv.Required(CONF_IP_ADDRESS): cv.ipv4address, 
+            cv.Required(CONF_IP_ADDRESS): cv.ipv4address,
             cv.Optional(CONF_PORT, default=502): cv.port,
             cv.Optional(CONF_ADDRESS, default=0): cv.hex_uint8_t,
             cv.Optional(CONF_RAW_DATA, default=False): cv.boolean,
