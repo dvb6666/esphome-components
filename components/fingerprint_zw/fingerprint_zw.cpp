@@ -26,7 +26,14 @@ void ZwComponent::start_scan() {
 }
 
 void ZwComponent::start_register(uint16_t finger_id, uint8_t role, uint32_t delay) {
-  // ESP_LOGD(TAG, "Start register batch: UID %d (0x%04X), Role %d, delay %d", finger_id, finger_id, role, delay);
+  ESP_LOGD(TAG, "Start register: UID %d", finger_id);
+  commands_queue_.push(make_unique<ZwCommandGetImage>());
+  commands_queue_.push(make_unique<ZwCommandGenChar>(1));
+  commands_queue_.push(make_unique<ZwCommandGetImage>());
+  commands_queue_.push(make_unique<ZwCommandGenChar>(2));
+  commands_queue_.push(make_unique<ZwCommandRegModel>());
+  commands_queue_.push(make_unique<ZwCommandStoreChar>(finger_id, 1));
+  get_fingerprints_count(); // обновить счётчик
 }
 
 void ZwComponent::aura_led_control(ZwAuraLEDState state, ZwAuraLEDColor color, uint8_t count) {
@@ -460,6 +467,37 @@ bool ZwComponent::process_command(ZwCommand *command) {
           }
           ESP_LOGD(TAG, "Module serial number: %s", this->module_id_);
         } break;
+		
+		case PS_RegModel: {
+		  uint8_t confirmation = this->rx_buffer_[9];
+		  if (confirmation == 0x00) {
+		  ESP_LOGD(TAG, "Fingerprint model created successfully");
+		  if (this->register_done_callback_.size() > 0) {
+			this->register_done_callback_.call(5, 0); // step=5, placeholder ID
+			}
+		  } else {
+		  ESP_LOGW(TAG, "Failed to create fingerprint model, error 0x%02X", confirmation);
+		  if (this->register_failed_callback_.size() > 0) {
+		  this->register_failed_callback_.call(confirmation);
+		}
+		}
+		} break;
+		case PS_StoreChar: {
+		  uint8_t confirmation = this->rx_buffer_[9];
+		  uint16_t stored_id = ((uint16_t) this->rx_buffer_[10] << 8) | this->rx_buffer_[11];
+		if (confirmation == 0x00) {
+			ESP_LOGD(TAG, "Fingerprint stored successfully with ID %d", stored_id);
+			if (this->register_done_callback_.size() > 0) {
+			this->register_done_callback_.call(6, stored_id); // step=6, actual ID
+		}
+			get_fingerprints_count(); // обновить счётчик
+		} else {
+			ESP_LOGW(TAG, "Failed to store fingerprint, error 0x%02X", confirmation);
+			if (this->register_failed_callback_.size() > 0) {
+			this->register_failed_callback_.call(confirmation);
+		}
+		}
+		} break;
       }
     } break;
 
@@ -514,6 +552,8 @@ bool ZwComponent::process_error(ZwCommand *command, uint8_t error_code) {
     } break;
 
     case PS_GetChipSN:
+    case PS_RegModel:
+    case PS_StoreChar:
     case PS_ReadlNFpage: {
       if (++this->retry_count_ < 3) {
         ESP_LOGD(TAG, "Error on command %02x. Doing retry %d...", command->code, this->retry_count_);
