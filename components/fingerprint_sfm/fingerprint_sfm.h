@@ -4,6 +4,7 @@
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
+#include "esphome/core/trigger.h"
 #include <memory>
 #include <queue>
 
