@@ -23,12 +23,12 @@ public:
 
   void update() override {
     this->counter_++;
-    ESP_LOGD(TAG, "update(): counter=%d", this->counter_);
+    ESP_LOGD(TAG, "update(): counter=%ld", this->counter_);
     this->on_update_callback_.call(this->counter_, *this);
   }
 
-  void add_on_update_callback(std::function<void(uint32_t, const TestPollingComponent &)> &&callback) {
-    this->on_update_callback_.add(std::move(callback));
+  template<typename F> void add_on_update_callback(F &&callback) {
+    this->on_update_callback_.add(std::forward<F>(callback));
   }
 
 private:

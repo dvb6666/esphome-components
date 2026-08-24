@@ -24,19 +24,19 @@ void SfmComponent::start_scan() {
 }
 
 void SfmComponent::start_register(uint16_t finger_id, uint8_t role, uint32_t delay) {
-  ESP_LOGD(TAG, "Start register batch: UID %d (0x%04X), Role %d, delay %d", finger_id, finger_id, role, delay);
+  ESP_LOGD(TAG, "Start register batch: UID %d (0x%04X), Role %d, delay %ld", finger_id, finger_id, role, delay);
   if (this->register_start_callback_.size() > 0) {
     ESP_LOGV(TAG, "Executing on_register_start(1)");
     this->register_start_callback_.call(1);
   } else {
     ESP_LOGV(TAG, "No callback on_register_start");
   }
-  ESP_LOGD(TAG, "Add to queue 1st register step: UID %d (0x%04X), Role %d, delay %d", finger_id, finger_id, role, delay);
+  ESP_LOGD(TAG, "Add to queue 1st register step: UID %d (0x%04X), Role %d, delay %ld", finger_id, finger_id, role, delay);
   this->commands_queue_.push(make_unique<SfmCommand>(0x01, (finger_id >> 8) & 0xFF, finger_id & 0xFF, role & 0x03, delay));
 }
 
 void SfmComponent::set_color(SfmColor start, SfmColor end, uint16_t period, uint32_t delay) {
-  ESP_LOGD(TAG, "Add to queue setting color: start %d, end %d, period %dms, delay %dms", start, end, period, delay);
+  ESP_LOGD(TAG, "Add to queue setting color: start %d, end %d, period %dms, delay %ldms", start, end, period, delay);
   period /= 10;
   if (period < 30)
     period = 30;
@@ -96,7 +96,7 @@ void SfmComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  Sensing (IRQ) Pin: None");
   }
   if (this->idle_period_to_sleep_ms_ > 0) {
-    ESP_LOGCONFIG(TAG, "  Idle Period to Sleep: %dms", this->idle_period_to_sleep_ms_);
+    ESP_LOGCONFIG(TAG, "  Idle Period to Sleep: %ldms", this->idle_period_to_sleep_ms_);
   } else {
     ESP_LOGCONFIG(TAG, "  Idle Period to Sleep: Never");
   }
