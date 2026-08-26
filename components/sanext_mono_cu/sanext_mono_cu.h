@@ -2,6 +2,7 @@
 
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/sensor/sensor.h"
+#include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
 #include <memory>
@@ -30,7 +31,7 @@ class SanextCommandReadMeter : public SanextCommand {
 
 class SanextMonoCU : public PollingComponent, public uart::UARTDevice {
  public:
-  SanextMonoCU(uart::UARTComponent *uart) : uart::UARTDevice(uart) {}
+  SanextMonoCU(uart::UARTComponent *uart, bool unit_first) : uart::UARTDevice(uart), unit_first_(unit_first) {}
 
   static uint8_t bcd8(const uint8_t data) { return (data & 0x0f) + 10 * ((data >> 4) & 0x0f); };
   static uint16_t bcd16(const uint8_t *data) { return bcd8(data[0]) + 100 * bcd8(data[1]); };
@@ -53,12 +54,14 @@ class SanextMonoCU : public PollingComponent, public uart::UARTDevice {
   void set_volume_sensor(sensor::Sensor *sensor) { this->volume_sensor_ = sensor; }
   void set_water_supply_temperature_sensor(sensor::Sensor *sensor) { this->water_supply_temperature_sensor_ = sensor; }
   void set_backwater_temperature_sensor(sensor::Sensor *sensor) { this->backwater_temperature_sensor_ = sensor; }
+  void set_hours_sensor(sensor::Sensor *sensor) { this->hours_sensor_ = sensor; }
   void set_connectivity_error_sensor(binary_sensor::BinarySensor *sensor) { this->connectivity_error_sensor_ = sensor; }
   void set_battery_power_alarm_sensor(binary_sensor::BinarySensor *sensor) { this->battery_power_alarm_sensor_ = sensor; }
   void set_flow_alarm_sensor(binary_sensor::BinarySensor *sensor) { this->flow_alarm_sensor_ = sensor; }
   void set_ee_fault_sensor(binary_sensor::BinarySensor *sensor) { this->ee_fault_sensor_ = sensor; }
   void set_temperature_less_3_degree_sensor(binary_sensor::BinarySensor *sensor) { this->temperature_less_3_degree_sensor_ = sensor; }
   void set_temperature_more_95_degree_sensor(binary_sensor::BinarySensor *sensor) { this->temperature_more_95_degree_sensor_ = sensor; }
+  void set_datetime_sensor(text_sensor::TextSensor *sensor) { this->datetime_sensor_ = sensor; }
 
   void set_address(uint64_t address) { this->address_ = address; };
   void read_meter();
@@ -70,11 +73,12 @@ class SanextMonoCU : public PollingComponent, public uart::UARTDevice {
 
  private:
   sensor::Sensor *cooling_energy_sensor_{nullptr}, *heating_energy_sensor_{nullptr}, *power_sensor_{nullptr}, *flow_sensor_{nullptr},
-    *volume_sensor_{nullptr}, *water_supply_temperature_sensor_{nullptr}, *backwater_temperature_sensor_{nullptr};
+    *volume_sensor_{nullptr}, *water_supply_temperature_sensor_{nullptr}, *backwater_temperature_sensor_{nullptr}, *hours_sensor_{nullptr};
   binary_sensor::BinarySensor *connectivity_error_sensor_{nullptr}, *battery_power_alarm_sensor_{nullptr}, *flow_alarm_sensor_{nullptr},
     *ee_fault_sensor_{nullptr}, *temperature_less_3_degree_sensor_{nullptr}, *temperature_more_95_degree_sensor_{nullptr};
+  text_sensor::TextSensor *datetime_sensor_{nullptr};
   std::queue<std::unique_ptr<SanextCommand>> commands_queue_;
-  bool running_{false}, error_{false};
+  bool running_{false}, error_{false}, unit_first_;
   uint64_t address_{DEFAULT_ADDRESS};
   uint16_t phase_{0}, process_phase_{0}, retry_count_{0};
   unsigned long sleep_time_{0}, wait_time_{0}, log_time_{0};
