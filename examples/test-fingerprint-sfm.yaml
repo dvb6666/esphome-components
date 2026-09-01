@@ -68,7 +68,7 @@ button:
       then:
         # - lambda: |-
         #     id(sfm_id).start_register();
-        - fingerprint_sfm.start_register
+        - fingerprint_sfm.start_register:
             # finger_id: 0
             # role: 3
             # delay: 2s
