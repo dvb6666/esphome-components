@@ -8,7 +8,6 @@ namespace sanext_mono_cu {
 #define READ_TIMEOUT 2000
 
 static const char *TAG = "sanext_mono_cu";
-//static const char *DIGITS = "0123456789ABCDEF";
 
 void SanextMonoCU::read_meter() {
   ESP_LOGD(TAG, "Add to queue meter reading command");
@@ -38,6 +37,10 @@ void SanextMonoCU::dump_config() {
     LOG_SENSOR("  ", "Water Supply Temperature Sensor: ", this->water_supply_temperature_sensor_);
   if (this->backwater_temperature_sensor_)
     LOG_SENSOR("  ", "Backwater Temperature Sensor: ", this->backwater_temperature_sensor_);
+  if (this->hours_sensor_)
+    LOG_SENSOR("  ", "Working Hours Sensor: ", this->hours_sensor_);
+  if (this->hours_sensor_)
+    LOG_TEXT_SENSOR("  ", "DateTime Sensor: ", this->datetime_sensor_);
   if (this->connectivity_error_sensor_)
     LOG_BINARY_SENSOR("  ", "Connectivity Error Sensor: ", this->connectivity_error_sensor_);
   if (this->battery_power_alarm_sensor_)
@@ -119,7 +122,7 @@ bool SanextMonoCU::process_command(SanextCommand *command) {
         this->tx_buffer_[this->tx_bytes_sending_++] = command->d0;
       if (command->request_length > 2)
         this->tx_buffer_[this->tx_bytes_sending_++] = command->d1;
-      this->tx_buffer_[this->tx_bytes_sending_++] = this->serial_++;
+      this->tx_buffer_[this->tx_bytes_sending_++] = ++this->serial_;
       // check sum
       uint8_t csum = 0;
       for (uint8_t i = 2; i < this->tx_bytes_sending_; i++)
@@ -206,7 +209,12 @@ bool SanextMonoCU::process_command(SanextCommand *command) {
                  this->rx_buffer_[12], command->response_length);
         return process_error(command);
       }
-      // TODO check SER
+      // check SER
+      if (this->rx_buffer_[15] != this->serial_) {
+        ESP_LOGW(TAG, "Command 0x%02X, phase %d got wrong SER 0x%02X (instead of 0x%02X)", command->code, this->phase_,
+                 this->rx_buffer_[15], this->serial_);
+        return process_error(command);
+      }
       // check sum
       uint8_t csum = 0;
       for (uint8_t i = 2; i < this->rx_bytes_needed_ - 2; i++)
@@ -242,33 +250,38 @@ bool SanextMonoCU::process_command(SanextCommand *command) {
     case 6: {
       if (command->code == SANEXT_ReadMeter) switch(++this->process_phase_) {
         case 1: {
+          uint8_t value_addr = 16 + (this->unit_first_ ? 1 : 0), unit_addr = value_addr + (this->unit_first_ ? -1 : 4);
           // ESP_LOGD(TAG, "Current cooling capacity: %.2f kWh (0x%02X)", (float)bcd32(&this->rx_buffer_[16]) * 0.01, this->rx_buffer_[20]);
-          if (this->rx_buffer_[20] != 0x05) ESP_LOGW(TAG, "Cooling energy unknown unit: 0x%02X", this->rx_buffer_[20]);
-          else if (this->cooling_energy_sensor_) this->cooling_energy_sensor_->publish_state((float)bcd32(&this->rx_buffer_[16]) * 0.01);
+          if (this->rx_buffer_[unit_addr] != 0x05) ESP_LOGW(TAG, "Cooling energy unknown unit: 0x%02X", this->rx_buffer_[unit_addr]);
+          else if (this->cooling_energy_sensor_) this->cooling_energy_sensor_->publish_state((float)bcd32(&this->rx_buffer_[value_addr]) * 0.01);
           return false;
         };
         case 2: {
+          uint8_t value_addr = 21 + (this->unit_first_ ? 1 : 0), unit_addr = value_addr + (this->unit_first_ ? -1 : 4);
           // ESP_LOGD(TAG, "Current calories: %.2f kWh (0x%02X)", (float)bcd32(&this->rx_buffer_[21]) * 0.01, this->rx_buffer_[25]);
-          if (this->rx_buffer_[25] != 0x05) ESP_LOGW(TAG, "Heating energy unknown unit: 0x%02X", this->rx_buffer_[25]);
-          else if (this->heating_energy_sensor_) this->heating_energy_sensor_->publish_state((float)bcd32(&this->rx_buffer_[21]) * 0.01);
+          if (this->rx_buffer_[unit_addr] != 0x05) ESP_LOGW(TAG, "Heating energy unknown unit: 0x%02X", this->rx_buffer_[unit_addr]);
+          else if (this->heating_energy_sensor_) this->heating_energy_sensor_->publish_state((float)bcd32(&this->rx_buffer_[value_addr]) * 0.01);
           return false;
         };
         case 3: {
+          uint8_t value_addr = 26 + (this->unit_first_ ? 1 : 0), unit_addr = value_addr + (this->unit_first_ ? -1 : 4);
           // ESP_LOGD(TAG, "Power: %.2f kW (0x%02X)", (float)bcd32(&this->rx_buffer_[26]) * 0.01, this->rx_buffer_[30]);
-          if (this->rx_buffer_[30] != 0x17) ESP_LOGW(TAG, "Power unknown unit: 0x%02X", this->rx_buffer_[30]);
-          else if (this->power_sensor_) this->power_sensor_->publish_state((float)bcd32(&this->rx_buffer_[26]) * 0.01);
+          if (this->rx_buffer_[unit_addr] != 0x17) ESP_LOGW(TAG, "Power unknown unit: 0x%02X", this->rx_buffer_[unit_addr]);
+          else if (this->power_sensor_) this->power_sensor_->publish_state((float)bcd32(&this->rx_buffer_[value_addr]) * 0.01);
           return false;
         };
         case 4: {
+          uint8_t value_addr = 31 + (this->unit_first_ ? 1 : 0), unit_addr = value_addr + (this->unit_first_ ? -1 : 4);
           // ESP_LOGD(TAG, "Instantaneous flow rate: %.2f m3/h (0x%02X)", (float)bcd32(&this->rx_buffer_[31]) * 0.01, this->rx_buffer_[35]);
-          if (this->rx_buffer_[35] != 0x35) ESP_LOGW(TAG, "Flow unknown unit: 0x%02X", this->rx_buffer_[35]);
-          else if (this->flow_sensor_) this->flow_sensor_->publish_state((float)bcd32(&this->rx_buffer_[31]) * 0.01);
+          if (this->rx_buffer_[unit_addr] != 0x35) ESP_LOGW(TAG, "Flow unknown unit: 0x%02X", this->rx_buffer_[unit_addr]);
+          else if (this->flow_sensor_) this->flow_sensor_->publish_state((float)bcd32(&this->rx_buffer_[value_addr]) * 0.01);
           return false;
         };
         case 5: {
+          uint8_t value_addr = 36 + (this->unit_first_ ? 1 : 0), unit_addr = value_addr + (this->unit_first_ ? -1 : 4);
           // ESP_LOGD(TAG, "Volume: %.2f m3 (0x%02X)", (float)bcd32(&this->rx_buffer_[36]) * 0.01, this->rx_buffer_[40]);
-          if (this->rx_buffer_[40] != 0x2C) ESP_LOGW(TAG, "Volume unknown unit: 0x%02X", this->rx_buffer_[40]);
-          else if (this->volume_sensor_) this->volume_sensor_->publish_state((float)bcd32(&this->rx_buffer_[36]) * 0.01);
+          if (this->rx_buffer_[unit_addr] != 0x2C) ESP_LOGW(TAG, "Volume unknown unit: 0x%02X", this->rx_buffer_[unit_addr]);
+          else if (this->volume_sensor_) this->volume_sensor_->publish_state((float)bcd32(&this->rx_buffer_[value_addr]) * 0.01);
           return false;
         };
         case 6: {
@@ -282,11 +295,19 @@ bool SanextMonoCU::process_command(SanextCommand *command) {
           return false;
         };
         case 8: {
-          ESP_LOGD(TAG, "Working time: %ld hours", bcd24(&this->rx_buffer_[47]));
+          // ESP_LOGD(TAG, "Working time: %ld hours", bcd24(&this->rx_buffer_[47]));
+          if (this->hours_sensor_)
+            this->hours_sensor_->publish_state(bcd24(&this->rx_buffer_[47]));
           return false;
         };
         case 9: {
-          ESP_LOGD(TAG, "Current time: %ld %ld", bcd32(&this->rx_buffer_[53]), bcd24(&this->rx_buffer_[50]));
+          // ESP_LOGD(TAG, "Current time: %ld %ld", bcd32(&this->rx_buffer_[53]), bcd24(&this->rx_buffer_[50]));
+          if (this->datetime_sensor_) {
+            char dt_temp[32];
+            snprintf(dt_temp, sizeof(dt_temp), "%04d-%02d-%02dT%02d:%02d:%02dZ", bcd16(&this->rx_buffer_[55]), bcd8(this->rx_buffer_[54]),
+              bcd8(this->rx_buffer_[53]), bcd8(this->rx_buffer_[52]), bcd8(this->rx_buffer_[51]), bcd8(this->rx_buffer_[50]));
+            this->datetime_sensor_->publish_state(dt_temp);
+          }
           return false;
         };
         case 10: {

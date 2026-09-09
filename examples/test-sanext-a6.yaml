@@ -1,0 +1,76 @@
+esphome:
+  name: test-sanext-a6
+  friendly_name: test-sanext-a6
+  devices:
+    - name: "Sanext"
+      id: sanext
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    advanced:
+      minimum_chip_revision: "3.1"
+
+logger:
+api:
+ota:
+  - platform: esphome
+    password: !secret ota_password
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+
+uart:
+  - id: rs485
+    tx_pin: GPIO27
+    rx_pin: GPIO14
+    baud_rate: 2400
+    data_bits: 8
+    parity: EVEN
+    # debug:
+    #   direction: BOTH
+    #   sequence:
+    #      - lambda: UARTDebug::log_hex(direction, bytes, ' ');
+
+sanext_mono_cu:
+  id: sanext_meter
+  device_id: sanext
+  update_interval: 60min
+  # unit_first: true
+  # address: 0x00740111700004 # 0074 - factory code; 00=DN15, 01=DN20, 02=DN25, 03=DN32, 04=DN40; 11700004 the same as marked on body
+  cooling_energy: Cooling Energy
+  heating_energy: Heating Energy
+  power: Power
+  flow: Flow
+  volume: Volume
+  water_supply_temperature: Water Supply Temperature
+  backwater_temperature: Backwater Temperature
+  hours: Working Time
+  datetime: Date Time
+  connectivity_error: Connectivity Error
+  battery_power_alarm: Battery Power Alarm
+  flow_alarm: Flow Alarm
+  ee_fault: EE Fault
+  temperature_less_3_degree: Temperature less 3 degree
+  temperature_more_95_degree: Temperature more 95 degree
+
+button:
+  - platform: template
+    name: "Read Meter"
+    device_id: sanext
+    on_press:
+      - lambda: "id(sanext_meter).read_meter();"
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+
+binary_sensor:
+  - platform: status
+    name: Status
+    entity_category: diagnostic
+
+external_components:
+  - source: github://dvb6666/esphome-components
+    refresh: 1sec
