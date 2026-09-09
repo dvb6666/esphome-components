@@ -1,9 +1,9 @@
 // Параметры
 SIDE = 1; // -1 для крепления слева; 1 справа; 0 без крепления
-EXT_MOTOR = false; // дополнительный разъём для мотора
+EXT_MOTOR = true; // дополнительный разъём для мотора
 EXT_USBC_1 = false; // доп. USB-C снизу
 EXT_USBC_2 = true; // доп. USB-C сбоку
-IR_SENS_1 = false; // инфракрасный датчик снизу
+IR_SENS_1 = true; // инфракрасный датчик снизу
 IR_SENS_2 = true; // инфракрасный датчик сверху
 IR_SENS_2_ANGLE = 30 * (SIDE > 0 ? 1 : -1); // угол отклонения
 
@@ -30,15 +30,15 @@ b_length = 34.2;
 b_width = 24.2;
 b_height = 1.8; // толщина платы/текстолита (с небольшим запасом в 0.1-0.2мм)
 b_z_offset = 2; // подъём для платы
-b_wall_width = 1.4; // ширина стенки
+b_wall_width = 1.2; // ширина стенки
 b_wall_height = 10; // высота стенки
 b_btn_shift_x = 12.5;
 b_btn_shift_y = 2.3;
-b_btn_pin_height = 3.2; // высота штырька для нажатия на кнопку
+b_btn_pin_height = 2; // высота штырька для нажатия на кнопку
 b_btn_pin_diam = 3; // диаметр штырька для нажатия на кнопку
 b_latch_width = 2*b_wall_width; // ширина защёлок для платы
-b_latch_height = 1.4; // высота защёлок для платы
-b_latch_depth = 0.8; // глубина защёлок для платы
+b_latch_height = 1.2; // высота защёлок для платы
+b_latch_depth = 0.4; // глубина защёлок для платы
 
 // Корпус
 a_wall_width = 2; // ширина стенок
@@ -54,7 +54,7 @@ c_latch_height = 1; // их высота
 c_latch_width = 5;
 c_latch_border_dist = 4;
 
-// горизонтальная площадка со стороны крепления к окну
+// Горизонтальная площадка со стороны крепления к окну
 a_binding_to_shaft = 32.5; // расстояние от нижней границы до центра вала
 a_binding_to_top = 12; //  расстояние крепления до верхней границы корпуса
 a_binding_base_length = 35.6; // длина базы в районе крепления
@@ -77,6 +77,12 @@ ir_height = 7.5 + 2*ir_wall; // высота
 ir_width = 6.1 + 2*ir_wall; // ширина
 ir_depth = 3.7 + 2*ir_wall; // глубина
 
+// размеры разъёма кабеля usb-c
+usbc_width = 10;
+usbc_height = 4;
+// размера коннектора кабеля usb-c
+usbc_cable_width = 11.2;
+usbc_cable_height = 6.4;
 
 $fn = 100;
 
@@ -158,28 +164,24 @@ difference() {
         // крепление под плату
         latch_z_offset = b_z_offset + b_height + b_latch_height/2;
         translate([a_length - a_width/2 - a_wall_width, 0, a_wall_width]) {
+            xx = b_length + b_wall_width;
+            back_width = b_width/2;
+            translate([-xx + b_wall_width/2, 0, tmp_motor_h/2]) cube([b_wall_width, back_width, tmp_motor_h], center=true);
             for(y = [-1, 1]) {
-                xx = b_length + b_wall_width;
                 yy = y * (b_width + b_wall_width)/2;
                 translate([-xx/2, yy, b_wall_height/2]) cube([xx, b_wall_width, b_wall_height], center=true);
                 translate([-xx/2, yy - y*b_wall_width, b_z_offset/2]) cube([xx, b_wall_width, b_z_offset], center=true);
-                // сдвинутые к центру защёлки со скатами
-                translate([-xx + b_wall_width/2, yy - y*1.5*b_latch_width, b_wall_height/2]) cube([b_wall_width, b_latch_width, b_wall_height], center=true);
-                translate([-xx + b_wall_width*3/2, yy - y*1.5*b_latch_width, b_wall_width/2]) rotate([90, 0, 0]) round_arc(b_wall_width, b_latch_width);
-                translate([-xx - b_wall_width/2, yy - y*1.5*b_latch_width, b_wall_width/2]) rotate([90, 0, 0]) round_arc(b_wall_width, b_latch_width, -1);
-                translate([-xx + b_wall_width - 0.2, yy - y*1.5*b_latch_width, latch_z_offset]) 
+                // сдвинутые к центру защёлки
+                translate([-xx + b_wall_width - 0.2, y*back_width/2 - y*b_latch_width, latch_z_offset]) 
                     rotate([0, 0, -90]) latch1(b_latch_width, b_latch_height, 0.2, b_latch_depth, b_latch_height/2);
+                // защёлки на внешней стенке
                 translate([0.2, yy - y*1.5*b_latch_width, latch_z_offset]) 
                     rotate([0, 0, 90]) latch1(b_latch_width, b_latch_height, 0.2, b_latch_depth, b_latch_height/2);
-//                // по 3 защёлки с каждой стороны
-//                for(x = [-1, 0, 1]) 
-//                    translate([-b_length/2 + x*b_length/3, yy - y*b_wall_width/4, b_z_offset + b_height]) rotate([0, 90, 0]) cylinder(h=4, d=1, center=true);
             }
         }
         // крепление под второй (верхний) IR
         if (IR_SENS_2) rotate([0, 0, IR_SENS_2_ANGLE]) translate([-a_width/2 + ir_wall, 0, a_height - ir_height/2 - a_wall_width/2]) {
             cube([ir_depth, ir_width, ir_height], center=true);
-//            translate([0, 0, ir_height/2]) cube([ir_depth - 2*ir_wall, ir_width, a_wall_width/2], center=true);
         }
     }
     
@@ -191,14 +193,14 @@ difference() {
         translate([0, 0, ir_height/2 + a_wall_width/4 - ir_wall + 0.5]) cube([2*ir_wall, ir_width, a_wall_width/2 + 1], center=true);
     }            
 
-    // вырез для USB-C снизу
-    translate([a_length - a_width/2 - a_wall_width - 1, 0, a_wall_width + b_z_offset + 15]) rotate([90, 0, 90]) hole(2*a_wall_width, 5.5, 4.5);
+    // вырез для USB-C снизу (1.5 - плата; 13 - разъём+гребенка+плата_есп; 2.2 - usb-разъёма)
+    translate([a_length - a_width/2 - a_wall_width - 1, 0, a_wall_width + b_z_offset + 1.8 + 13 + 2.4/2]) rotate([90, 0, 90]) hole(2*a_wall_width, usbc_cable_width - usbc_cable_height, usbc_cable_height);
     // вырез для дополнительного USB-C снизу
     if (EXT_USBC_1) {
-        translate([a_length - a_width/2 - a_wall_width - 1, 0, a_wall_width + b_z_offset + 4.3]) rotate([90, 0, 90]) hole(2*a_wall_width,5.5, 4.5);
+        translate([a_length - a_width/2 - a_wall_width - 1, 0, a_wall_width + b_z_offset + 4.3]) rotate([90, 0, 90]) hole(2*a_wall_width, usbc_cable_width - usbc_cable_height, usbc_cable_height);
     } else {
         // вырез для дополнительного USB-C сбоку
-        if (EXT_USBC_2) translate([a_length - a_width/2 - 8.6, 0, -1]) rotate([0, 0, 90]) hole(2*a_wall_width, 5.5, 4.5);
+        if (EXT_USBC_2) translate([a_length - a_width/2 - 8.4, 0, -1]) rotate([0, 0, 90]) hole(2*a_wall_width, usbc_width - usbc_height, usbc_height);
         // вырез для IR-сенсора
         if (IR_SENS_1) translate([a_length - a_width/2 - a_wall_width - 1, 0, a_wall_width + b_z_offset + 8]) cube([20, 7, 10], center=true);
     }
@@ -218,6 +220,7 @@ difference() {
         // вырез под сам мотор
         cylinder(h=a_height, d=m_diam);
         translate([-m_diam/2, 0, tmp_motor_h/2+1]) cube([m_diam/4, m_bottom_width, tmp_motor_h+2], center=true);
+        translate([m_diam/2 - 10/2, 0, tmp_motor_h/2+1]) cube([11.5, b_width/2 + 2, tmp_motor_h+2], center=true);
         // вырезы под ушки и гайки
         translate([0, 0, z_top - a_wall_width/2]) cube([m_holes_diam_out, m_diam + m_holes_diam_out, 2], center = true);
         translate([0, 0, z_screw]) cube([h_screw_S, m_holes_dist, h_screw_height], center = true);
@@ -232,6 +235,13 @@ difference() {
             // небольшой конус от отверстия с гайкой, чтобы не делать поддержку
             translate([0, y_hole, z_screw  + h_screw_height/2]) cylinder(h=1.5, d2=m_holes_diam_in, d1 = h_screw_S);
         }
+    }
+    // для теста печатает только часть корпуса с посадкой платы
+    test_pcb = false;
+    if (test_pcb) {
+        cube([32, 80, 80], center=true);
+        translate([20, 20, 0]) cube([200, 13, 800], center=true);
+        translate([20, -20, 0]) cube([200, 13, 800], center=true);
     }
 }
 
